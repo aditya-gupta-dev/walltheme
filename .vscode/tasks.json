@@ -1,0 +1,26 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "walltheme: watch",
+      "type": "shell",
+      "command": "bun run watch",
+      "isBackground": true,
+      "problemMatcher": "$esbuild",
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "walltheme: build",
+      "type": "shell",
+      "command": "bun run compile",
+      "problemMatcher": ["$esbuild"],
+      "group": "build"
+    },
+    {
+      "label": "walltheme: typecheck",
+      "type": "shell",
+      "command": "bun run typecheck",
+      "problemMatcher": ["$tsc"]
+    }
+  ]
+}

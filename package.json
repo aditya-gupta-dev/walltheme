@@ -1,0 +1,218 @@
+{
+  "name": "walltheme",
+  "displayName": "WallTheme",
+  "description": "Material You for VS Code — generate a complete color theme from your wallpaper or any image, matugen-style.",
+  "version": "0.1.0",
+  "publisher": "walltheme",
+  "license": "MIT",
+  "icon": "assets/icon.png",
+  "galleryBanner": {
+    "color": "#16130f",
+    "theme": "dark"
+  },
+  "keywords": [
+    "theme",
+    "wallpaper",
+    "material you",
+    "matugen",
+    "dynamic theme",
+    "color scheme"
+  ],
+  "engines": {
+    "vscode": "^1.84.0"
+  },
+  "categories": [
+    "Themes",
+    "Other"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "walltheme.reloadTheme",
+        "title": "WallTheme: Reload Theme…",
+        "category": "WallTheme"
+      },
+      {
+        "command": "walltheme.wallpaperTheme",
+        "title": "WallTheme: Wallpaper Theme",
+        "category": "WallTheme"
+      },
+      {
+        "command": "walltheme.resetTheme",
+        "title": "WallTheme: Reset Theme",
+        "category": "WallTheme"
+      },
+      {
+        "command": "walltheme.exportTheme",
+        "title": "WallTheme: Export Theme as JSON…",
+        "category": "WallTheme"
+      },
+      {
+        "command": "walltheme.preview",
+        "title": "WallTheme: Preview Palette",
+        "category": "WallTheme"
+      },
+      {
+        "command": "walltheme.chooseSeed",
+        "title": "WallTheme: Choose Source Color…",
+        "category": "WallTheme"
+      }
+    ],
+    "configuration": {
+      "title": "WallTheme",
+      "properties": {
+        "walltheme.style": {
+          "type": "string",
+          "default": "tonalSpot",
+          "enum": [
+            "tonalSpot",
+            "vibrant",
+            "expressive",
+            "content",
+            "fidelity",
+            "rainbow",
+            "fruitSalad",
+            "contrast"
+          ],
+          "enumDescriptions": [
+            "Material's default: hue slightly shifted, medium chroma (what matugen uses)",
+            "Maximally colorful — high chroma everywhere",
+            "Expressive — hue may shift far from the source",
+            "Chroma pulled from the source image itself",
+            "Hue and chroma strictly from the source color",
+            "All hues of the rainbow at the seed's chroma",
+            "Seed hue offset by 40° with rainbow-rotated accents",
+            "High-contrast variant of the tonal spot scheme"
+          ],
+          "description": "Dynamic color scheme variant (same set matugen exposes)."
+        },
+        "walltheme.contrastLevel": {
+          "type": "number",
+          "default": 0,
+          "minimum": -1,
+          "maximum": 1,
+          "description": "Contrast adjustment applied on top of the scheme (-1 … 1)."
+        },
+        "walltheme.isDark": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null,
+          "description": "Generate a dark theme (true), light theme (false), or follow VS Code's current theme kind (null)."
+        },
+        "walltheme.intensity": {
+          "type": "number",
+          "default": 1,
+          "minimum": 0.1,
+          "maximum": 1.5,
+          "description": "How strongly wallpaper colors saturate the editor (scales chroma)."
+        },
+        "walltheme.syntaxStyle": {
+          "type": "string",
+          "default": "material",
+          "enum": [
+            "material",
+            "rainbow",
+            "monochrome",
+            "vibrant"
+          ],
+          "enumDescriptions": [
+            "Material You inspired: tonal roles per token kind",
+            "Distinct hue per token kind for colorful coding",
+            "Grayscale syntax with only comments dimmed",
+            "Saturated, high-chroma tokens"
+          ],
+          "description": "Token color mapping strategy for the generated theme."
+        },
+        "walltheme.customImagePath": {
+          "type": "string",
+          "default": "",
+          "description": "Image used by 'Reload Theme…' between sessions. Managed automatically."
+        },
+        "walltheme.autoReload": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically regenerate when the wallpaper (or chosen image) changes."
+        },
+        "walltheme.watchIntervalMs": {
+          "type": "number",
+          "default": 5000,
+          "minimum": 1000,
+          "description": "Polling interval in milliseconds for wallpaper auto-reload."
+        },
+        "walltheme.wallpaperPathOverride": {
+          "type": "string",
+          "default": "",
+          "description": "Hard override for the wallpaper file path (e.g. for unsupported desktops)."
+        },
+        "walltheme.showStatusBarItem": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the WallTheme status bar item."
+        }
+      }
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "walltheme.wallpaperTheme",
+          "group": "walltheme"
+        },
+        {
+          "command": "walltheme.reloadTheme",
+          "group": "walltheme"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "node scripts/esbuild.mjs",
+    "watch": "node scripts/esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "gen:icon": "bun run scripts/make-icon.mjs",
+    "pretest": "bun run typecheck && bun run compile",
+    "vscode:prepublish": "bun run compile",
+    "package": "vsce package",
+    "clean": "rm -rf dist *.vsix"
+  },
+  "dependencies": {
+    "@material/material-color-utilities": "0.4.0",
+    "bmp-js": "^0.1.0",
+    "gifuct-js": "^2.1.2",
+    "jpeg-js": "^0.4.4",
+    "pngjs": "^7.0.0",
+    "utif": "^3.1.0"
+  },
+  "optionalDependencies": {
+    "sharp": "^0.33.5"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.10",
+    "@types/node": "^22.10.0",
+    "@types/pngjs": "^6.0.5",
+    "@types/vscode": "^1.84.0",
+    "@vscode/vsce": "^3.2.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.0"
+  },
+  "extensionKind": [
+    "ui",
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/walltheme/walltheme"
+  },
+  "homepage": "https://github.com/walltheme/walltheme#readme",
+  "bugs": {
+    "url": "https://github.com/walltheme/walltheme/issues"
+  }
+}
