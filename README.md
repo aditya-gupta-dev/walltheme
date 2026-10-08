@@ -1,6 +1,6 @@
 # WallTheme — Material You for VS Code
 
-Generate a complete VS Code color theme from your **desktop wallpaper** or **any image**, the same way [matugen](https://github.com/InioX/matugen) does it:
+Generate a complete VS Code color theme from **any image**, the same way [matugen](https://github.com/InioX/matugen) does it:
 
 ```
 image → Celebi quantization → HCT seed scoring → Material tonal palettes → full VS Code theme
@@ -10,13 +10,14 @@ Powered by Google's official [`@material/material-color-utilities`](https://gith
 
 ## Features
 
-- **Wallpaper Theme** — detects your current desktop wallpaper (Linux via xdg-portal/gsettings/KDE/XFCE, macOS, Windows) and themes the editor from it
-- **Reload Theme** — pick any image and generate a theme from it
+- **Generate Theme from Image** — pick any image, extract a Material palette, and apply the generated theme
+- **Theme dropdown** — click WallTheme in the status bar to choose an image or manage your theme
 - **Instant apply** — colors land via `workbench.colorCustomizations`, so the whole UI re-skins with **no reload or restart**
 - **Full M3 schemes** — tonalSpot, vibrant, expressive, content, fidelity, rainbow, fruitSalad, neutral, monochrome, contrast (same set matugen exposes)
-- **Auto reload** — watches your wallpaper and regenerates when it changes
+- **Auto reload** — watches your chosen image and regenerates when it changes
 - **Dark/light aware** — follows VS Code's theme kind, or force either
 - **Export** — write a standalone `*.json` theme you can share or package
+- **JSON history** — every generated theme is saved in `walltheme-generated/generated-themes.json` under the extension's global storage, including extracted hex colors, Material roles, UI colors, and syntax rules
 - **Reset** — one command restores your previous settings
 
 ## Usage
@@ -24,16 +25,19 @@ Powered by Google's official [`@material/material-color-utilities`](https://gith
 1. Open the folder in VS Code and press **F5** (Run Extension). An *Extension Development Host* window opens with WallTheme loaded.
 2. Press `Ctrl+Shift+P` / `Cmd+Shift+P` and type `WallTheme`:
 
+Choose **WallTheme: Generate Theme from Image…**, then select your image. WallTheme extracts colors and applies the generated UI and syntax colors immediately. No matugen installation needed.
+
 | Command | What it does |
 | --- | --- |
-| **WallTheme: Wallpaper Theme** | Read the desktop wallpaper → extract colors → apply |
+| **WallTheme: Generate Theme from Image…** | Pick an image, extract its palette, and apply the theme |
+| **WallTheme: Open Theme Menu…** | Open the WallTheme actions dropdown |
 | **WallTheme: Reload Theme…** | Open an image picker → extract colors → apply |
 | **WallTheme: Choose Source Color…** | Seed the palette from a hex color |
 | **WallTheme: Preview Palette** | Ranked extracted colors; click to copy or re-seed |
 | **WallTheme: Export Theme as JSON…** | Save a shareable standalone theme file |
 | **WallTheme: Reset Theme** | Remove all WallTheme customizations |
 
-There's also a `$(paintcan) WallTheme` status bar item — click it to regenerate from the wallpaper.
+There's also a `$(paintcan) WallTheme` status bar item — click it to open the actions dropdown, then select **Generate Theme from Image…**.
 
 ### Installing permanently (VSIX)
 
@@ -52,13 +56,14 @@ code --install-extension walltheme-0.1.0.vsix
 | `walltheme.contrastLevel` | `0` | −1 … 1 contrast adjustment |
 | `walltheme.intensity` | `1` | Chroma scaling for accents (0.1–1.5) |
 | `walltheme.syntaxStyle` | `material` | Token mapping: `material`, `rainbow`, `monochrome`, `vibrant` |
-| `walltheme.autoReload` | `true` | Regenerate when the wallpaper changes |
-| `walltheme.watchIntervalMs` | `5000` | Wallpaper poll interval |
-| `walltheme.wallpaperPathOverride` | `""` | Hard override for unsupported desktops |
+| `walltheme.autoReload` | `true` | Regenerate when the chosen image changes |
+| `walltheme.watchIntervalMs` | `5000` | Chosen-image poll interval |
 
 ## How the theming works
 
 The extension writes generated colors into `workbench.colorCustomizations` and `editor.tokenColorCustomizations` (global scope). This applies instantly and overrides the currently selected theme; your original theme is untouched and **Reset Theme** removes the overrides. The last theme is persisted and re-applied on startup.
+
+Generation also appends the complete theme to `generated-themes.json`. Previous entries survive new generations and Reset Theme. The latest saved theme is included when history is first created; themes overwritten before this feature cannot be recovered.
 
 ## Development
 
@@ -73,7 +78,6 @@ bun run gen:icon   # regenerate assets/icon.png
 
 ## Notes
 
-- Wallpaper detection prefers the xdg-desktop-portal, so it works on GNOME, KDE Plasma, XFCE, Sway, Hyprland, etc. If your desktop isn't detected, set `walltheme.wallpaperPathOverride`.
 - WebP/AVIF decoding requires the optional `sharp` dependency (installed by default; PNG/JPEG/GIF/BMP/TIFF work without it).
 
 ## License

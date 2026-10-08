@@ -1,7 +1,7 @@
 {
   "name": "walltheme",
   "displayName": "WallTheme",
-  "description": "Material You for VS Code — generate a complete color theme from your wallpaper or any image, matugen-style.",
+  "description": "Material You for VS Code \u2014 generate a complete color theme from any image, matugen-style.",
   "version": "0.1.0",
   "publisher": "walltheme",
   "license": "MIT",
@@ -12,7 +12,6 @@
   },
   "keywords": [
     "theme",
-    "wallpaper",
     "material you",
     "matugen",
     "dynamic theme",
@@ -26,16 +25,24 @@
     "Other"
   ],
   "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "contributes": {
     "commands": [
       {
-        "command": "walltheme.reloadTheme",
-        "title": "WallTheme: Reload Theme…",
+        "command": "walltheme.generateFromImage",
+        "title": "Generate Theme from Image\u2026",
         "category": "WallTheme"
       },
       {
-        "command": "walltheme.wallpaperTheme",
-        "title": "WallTheme: Wallpaper Theme",
+        "command": "walltheme.openMenu",
+        "title": "Open Theme Menu\u2026",
+        "category": "WallTheme"
+      },
+      {
+        "command": "walltheme.reloadTheme",
+        "title": "WallTheme: Reload Theme\u2026",
         "category": "WallTheme"
       },
       {
@@ -45,7 +52,7 @@
       },
       {
         "command": "walltheme.exportTheme",
-        "title": "WallTheme: Export Theme as JSON…",
+        "title": "WallTheme: Export Theme as JSON\u2026",
         "category": "WallTheme"
       },
       {
@@ -55,7 +62,7 @@
       },
       {
         "command": "walltheme.chooseSeed",
-        "title": "WallTheme: Choose Source Color…",
+        "title": "WallTheme: Choose Source Color\u2026",
         "category": "WallTheme"
       }
     ],
@@ -77,12 +84,12 @@
           ],
           "enumDescriptions": [
             "Material's default: hue slightly shifted, medium chroma (what matugen uses)",
-            "Maximally colorful — high chroma everywhere",
-            "Expressive — hue may shift far from the source",
+            "Maximally colorful \u2014 high chroma everywhere",
+            "Expressive \u2014 hue may shift far from the source",
             "Chroma pulled from the source image itself",
             "Hue and chroma strictly from the source color",
             "All hues of the rainbow at the seed's chroma",
-            "Seed hue offset by 40° with rainbow-rotated accents",
+            "Seed hue offset by 40\u00b0 with rainbow-rotated accents",
             "High-contrast variant of the tonal spot scheme"
           ],
           "description": "Dynamic color scheme variant (same set matugen exposes)."
@@ -92,7 +99,7 @@
           "default": 0,
           "minimum": -1,
           "maximum": 1,
-          "description": "Contrast adjustment applied on top of the scheme (-1 … 1)."
+          "description": "Contrast adjustment applied on top of the scheme (-1 \u2026 1)."
         },
         "walltheme.isDark": {
           "type": [
@@ -107,7 +114,7 @@
           "default": 1,
           "minimum": 0.1,
           "maximum": 1.5,
-          "description": "How strongly wallpaper colors saturate the editor (scales chroma)."
+          "description": "How strongly image colors saturate the editor (scales chroma)."
         },
         "walltheme.syntaxStyle": {
           "type": "string",
@@ -129,23 +136,18 @@
         "walltheme.customImagePath": {
           "type": "string",
           "default": "",
-          "description": "Image used by 'Reload Theme…' between sessions. Managed automatically."
+          "description": "Image used by 'Reload Theme\u2026' between sessions. Managed automatically."
         },
         "walltheme.autoReload": {
           "type": "boolean",
           "default": true,
-          "description": "Automatically regenerate when the wallpaper (or chosen image) changes."
+          "description": "Automatically regenerate when the chosen image changes."
         },
         "walltheme.watchIntervalMs": {
           "type": "number",
           "default": 5000,
           "minimum": 1000,
-          "description": "Polling interval in milliseconds for wallpaper auto-reload."
-        },
-        "walltheme.wallpaperPathOverride": {
-          "type": "string",
-          "default": "",
-          "description": "Hard override for the wallpaper file path (e.g. for unsupported desktops)."
+          "description": "Polling interval in milliseconds for chosen-image auto-reload."
         },
         "walltheme.showStatusBarItem": {
           "type": "boolean",
@@ -157,7 +159,7 @@
     "menus": {
       "editor/context": [
         {
-          "command": "walltheme.wallpaperTheme",
+          "command": "walltheme.generateFromImage",
           "group": "walltheme"
         },
         {

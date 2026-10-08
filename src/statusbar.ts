@@ -1,14 +1,14 @@
 import * as vscode from 'vscode';
 import type { ColorsGenerator } from './generator';
 
-/** Status bar item reflecting the generator state; click = wallpaper theme. */
+/** Status bar item reflecting generator state; click opens the actions dropdown. */
 export class StatusBarManager implements vscode.Disposable {
   private item: vscode.StatusBarItem;
 
   constructor(private readonly generator: ColorsGenerator) {
     this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 90);
     this.item.name = 'WallTheme';
-    this.item.command = 'walltheme.wallpaperTheme';
+    this.item.command = 'walltheme.openMenu';
     this.refresh();
     this.item.show();
   }
@@ -24,19 +24,19 @@ export class StatusBarManager implements vscode.Disposable {
       case 'ready':
         this.item.text = '$(paintcan) WallTheme';
         this.item.tooltip = new vscode.MarkdownString(
-          `**WallTheme active**\n\n${info?.summary ?? ''}\n\nSource: ${info?.source ?? '—'} (${info?.via ?? '—'})\n\nClick to regenerate from wallpaper.`,
+          `**WallTheme active**\n\n${info?.summary ?? ''}\n\nSource: ${info?.source ?? '—'} (${info?.via ?? '—'})\n\nClick to choose an image or manage your theme.`,
         );
         this.item.backgroundColor = undefined;
         break;
       case 'error':
         this.item.text = '$(paintcan) WallTheme!';
-        this.item.tooltip = `WallTheme error: ${error ?? 'unknown'}\n\nClick to retry from wallpaper.`;
+        this.item.tooltip = `WallTheme error: ${error ?? 'unknown'}\n\nClick to choose another image or retry.`;
         this.item.backgroundColor = new vscode.ThemeColor('statusBarItem.errorBackground');
         break;
       case 'idle':
       default:
         this.item.text = '$(paintcan) WallTheme';
-        this.item.tooltip = 'WallTheme: click to generate a theme from your wallpaper';
+        this.item.tooltip = 'WallTheme: click to generate a theme from an image';
         this.item.backgroundColor = undefined;
         break;
     }

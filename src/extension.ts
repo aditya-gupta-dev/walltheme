@@ -7,7 +7,7 @@ import { Logger } from './util/log';
 /**
  * WallTheme — Material You for VS Code.
  *
- * Generates a complete color theme from the desktop wallpaper or any image,
+ * Generates a complete color theme from a chosen image,
  * matugen-style: WSRGB quantization → HCT seed scoring → tonal palettes →
  * full theme applied via workbench color customizations (instant, no reload).
  */

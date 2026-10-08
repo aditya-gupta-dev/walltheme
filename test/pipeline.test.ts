@@ -13,7 +13,7 @@ import {
   detectImageFormat,
   extractPixels,
   nearestNeighborDownscale,
-} from '../src/wallpaper/image';
+} from '../src/image/decode';
 import {
   argbFromHex,
   argbFromRgb,

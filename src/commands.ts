@@ -10,13 +10,28 @@ export function registerCommands(
   status: StatusBarManager,
 ): vscode.Disposable {
   const registrations: vscode.Disposable[] = [
-    vscode.commands.registerCommand('walltheme.reloadTheme', async () => {
+    vscode.commands.registerCommand('walltheme.generateFromImage', async () => {
       await generator.generateFromPicker();
       status.refresh();
     }),
 
-    vscode.commands.registerCommand('walltheme.wallpaperTheme', async () => {
-      await generator.generateFromWallpaper();
+    vscode.commands.registerCommand('walltheme.openMenu', async () => {
+      const picked = await vscode.window.showQuickPick([
+        { label: '$(file-media) Generate Theme from Image…', description: 'Choose an image, extract colors, and apply', command: 'walltheme.generateFromImage' },
+        { label: '$(symbol-color) Choose Source Color…', description: 'Generate from a hex color', command: 'walltheme.chooseSeed' },
+        { label: '$(paintcan) Preview Palette', description: 'View extracted colors', command: 'walltheme.preview' },
+        { label: '$(export) Export Theme as JSON…', description: 'Save the generated theme', command: 'walltheme.exportTheme' },
+        { label: '$(discard) Reset Theme', description: 'Restore previous appearance', command: 'walltheme.resetTheme' },
+      ], {
+        title: 'WallTheme',
+        placeHolder: 'Generate a VS Code theme from an image',
+        matchOnDescription: true,
+      });
+      if (picked) await vscode.commands.executeCommand(picked.command);
+    }),
+
+    vscode.commands.registerCommand('walltheme.reloadTheme', async () => {
+      await generator.generateFromPicker();
       status.refresh();
     }),
 

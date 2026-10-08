@@ -6,7 +6,7 @@
  * `workbench.colorCustomizations` + `editor.tokenColorCustomizations`
  * (no reload needed), plus a standalone theme JSON in globalStorage.
  *
- * Also owns the wallpaper/image watcher for auto-reload and state restore.
+ * Also owns the chosen-image watcher for auto-reload and state restore.
  */
 import * as fs from 'fs';
 import * as os from 'os';
@@ -25,14 +25,14 @@ import {
 } from './theme/mcu';
 import type { SchemeVariant } from './theme/mcu';
 import { generateTheme } from './theme/vscode-theme';
+import { archiveTheme } from './theme/history';
 import type { ThemeColors, VsCodeTheme } from './theme/vscode-theme';
-import { decodeImage, extractPixels } from './wallpaper/image';
-import { getWallpaperPath } from './wallpaper/detect';
+import { decodeImage, extractPixels } from './image/decode';
 import { ensureDirSync, expandHome } from './util/fs';
 import { Logger } from './util/log';
 
 export type GeneratorState = 'idle' | 'working' | 'ready' | 'error';
-export type SourceKind = 'image' | 'wallpaper' | 'seed';
+export type SourceKind = 'image' | 'seed';
 
 export interface GenerationInfo {
   summary: string;
@@ -110,42 +110,27 @@ export class ColorsGenerator implements vscode.Disposable {
   // Commands
   // -------------------------------------------------------------------------
 
-  /** "Reload Theme…" — open the image picker, then generate. */
+  /** "Generate Theme from Image…" (and legacy "Reload Theme…"). */
   async generateFromPicker(): Promise<void> {
     const uris = await vscode.window.showOpenDialog({
       canSelectMany: false,
+      canSelectFiles: true,
+      canSelectFolders: false,
       openLabel: 'Use as theme source',
       title: 'WallTheme — choose an image to extract colors from',
       filters: { Images: ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif', 'tif', 'tiff'] },
     });
     if (!uris || uris.length === 0) return;
     await this.ctx.workspaceState.update('walltheme.customImagePath', uris[0].fsPath);
-    await this.generateFromPath(uris[0].fsPath, 'image picker');
-  }
-
-  /** "Wallpaper Theme" — detect the desktop wallpaper, then generate. */
-  async generateFromWallpaper(): Promise<void> {
-    this.setState('working');
-    try {
-      const override = vscode.workspace.getConfiguration('walltheme').get<string>('wallpaperPathOverride');
-      const result = await getWallpaperPath(override);
-      if (!result) {
-        const msg = 'Could not detect your desktop wallpaper. Set `walltheme.wallpaperPathOverride` to your wallpaper image and try again.';
-        Logger.error(msg);
-        this.setState('error', msg);
-        void vscode.window
-          .showErrorMessage('WallTheme: wallpaper not detected', 'Open Settings')
-          .then((choice) => {
-            if (choice === 'Open Settings') {
-              void vscode.commands.executeCommand('workbench.action.openSettings', 'walltheme.wallpaperPathOverride');
-            }
-          });
-        return;
-      }
-      Logger.info(`wallpaper found via ${result.via}: ${result.filePath}`);
-      await this.generateFromPath(result.filePath, `wallpaper (${result.via})`);
-    } catch (err) {
-      this.handleFailure('wallpaper theme failed', err);
+    await vscode.window.withProgress({
+      location: vscode.ProgressLocation.Notification,
+      title: 'WallTheme: extracting image colors and applying theme…',
+    }, () => this.generateFromPath(uris[0].fsPath, 'image picker'));
+    if (this.state === 'ready') {
+      void vscode.window.showInformationMessage(`WallTheme: theme applied from ${path.basename(uris[0].fsPath)}.`, 'Preview Palette')
+        .then((choice) => {
+          if (choice === 'Preview Palette') void this.previewPalette();
+        });
     }
   }
 
@@ -346,6 +331,22 @@ export class ColorsGenerator implements vscode.Disposable {
     // Write the standalone theme file (also handy for export/packaging).
     const outDir = path.join(this.ctx.globalStorageUri.fsPath, THEME_DIR);
     ensureDirSync(outDir);
+    const previous = this.readPersisted();
+    archiveTheme(path.join(outDir, 'generated-themes.json'), {
+      generatedAt: new Date().toISOString(),
+      source,
+      seedHex,
+      palette: palette ?? [seedHex],
+      materialColors: colors,
+      theme,
+    }, previous ? {
+      generatedAt: null,
+      source: previous.info.source,
+      seedHex: previous.info.seedHex,
+      palette: previous.info.palette,
+      materialColors: previous.colors,
+      theme: generateTheme({ colors: previous.colors, isDark: previous.isDark, syntaxStyle: previous.syntaxStyle }),
+    } : undefined);
     fs.writeFileSync(path.join(outDir, isDark ? 'walltheme-dark.json' : 'walltheme-light.json'), JSON.stringify(theme, null, 2));
 
     const info: GenerationInfo = {
@@ -423,7 +424,7 @@ export class ColorsGenerator implements vscode.Disposable {
   private async startWatcher(sourceKind: SourceKind, imageSource: string): Promise<void> {
     this.stopWatcher();
     const cfg = vscode.workspace.getConfiguration('walltheme');
-    if (!cfg.get<boolean>('autoReload', true)) return;
+    if (sourceKind !== 'image' || !cfg.get<boolean>('autoReload', true)) return;
     const interval = Math.max(1000, cfg.get<number>('watchIntervalMs') ?? 5000);
 
     this.watchMode = sourceKind;
@@ -450,11 +451,6 @@ export class ColorsGenerator implements vscode.Disposable {
         const st = fs.statSync(this.watchSource);
         return `${this.watchSource}:${st.mtimeMs}`;
       }
-      if (this.watchMode === 'wallpaper') {
-        const override = vscode.workspace.getConfiguration('walltheme').get<string>('wallpaperPathOverride');
-        const result = await getWallpaperPath(override);
-        return result ? `${result.filePath}:${fs.statSync(result.filePath).mtimeMs}` : 'none';
-      }
     } catch {
       // unreadable — treat as unchanged
     }
@@ -469,8 +465,6 @@ export class ColorsGenerator implements vscode.Disposable {
     Logger.info('source changed → regenerating');
     if (this.watchMode === 'image' && this.watchSource) {
       await this.generateFromPath(this.watchSource, 'watched image');
-    } else if (this.watchMode === 'wallpaper') {
-      await this.generateFromWallpaper();
     }
   }
 
@@ -482,7 +476,11 @@ export class ColorsGenerator implements vscode.Disposable {
     try {
       const raw = fs.readFileSync(this.stateFile, 'utf8');
       const parsed = JSON.parse(raw) as PersistedState;
-      if (parsed.version === 1 && parsed.colors && parsed.info) return parsed;
+      if (parsed.version === 1 && parsed.colors && parsed.info) {
+        // Older image sources are restored as static images, without desktop detection.
+        if (parsed.info.sourceKind !== 'seed') parsed.info.sourceKind = 'image';
+        return parsed;
+      }
     } catch {
       // no state yet
     }
