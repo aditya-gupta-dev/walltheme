@@ -78,7 +78,14 @@ bun run gen:icon   # regenerate assets/icon.png
 
 ## Notes
 
-- WebP/AVIF decoding requires the optional `sharp` dependency (installed by default; PNG/JPEG/GIF/BMP/TIFF work without it).
+- WebP/AVIF decoding requires the optional `sharp` dependency (installed by default) and standalone Node.js on PATH. PNG/JPEG/GIF/BMP/TIFF work without either.
+- PNG/JPEG resizing uses JavaScript. Optional native decoders run in a separate process, so decoder failures cannot close the extension host.
+
+### Debugging
+
+Press **F5**, then run **WallTheme: Generate Theme from Image…** in the **Extension Development Host** window. The generated theme applies to that window. The development launch disables other installed extensions to keep their background work out of the debug session.
+
+If generation fails, select **Show Logs** in the error notification or open **View → Output → WallTheme** for the failure details.
 
 ## License
 

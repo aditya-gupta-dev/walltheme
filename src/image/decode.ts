@@ -1,3 +1,4 @@
+import { execFile } from 'child_process';
 import type { Rgba } from '../theme/mcu';
 import { argbFromRgb } from '../theme/mcu';
 
@@ -10,14 +11,6 @@ export interface DecodedImage {
 
 /** Upscale cap: decode at most ~2.5 MP for extraction speed. */
 const MAX_PIXELS = 2_500_000;
-
-type SharpModule = typeof import('sharp');
-
-/** sharp is CJS with `export =`; handle both dynamic-import shapes. */
-async function loadSharp(): Promise<SharpModule> {
-  const mod = (await import('sharp')) as unknown as { default?: SharpModule };
-  return (mod.default ?? (mod as unknown as SharpModule)) as SharpModule;
-}
 
 type Decoder = (buf: Buffer) => Promise<DecodedImage>;
 
@@ -93,22 +86,64 @@ async function decodeTiff(buf: Buffer): Promise<DecodedImage> {
   return { width: ifds[0].width, height: ifds[0].height, data: Buffer.from(rgba) };
 }
 
-async function decodeWebp(buf: Buffer): Promise<DecodedImage> {
-  // Try sharp first (which supports webp), else fail with a clear error.
-  try {
-    return await decodeWithSharp(buf);
-  } catch {
-    throw new Error('WebP requires the optional `sharp` dependency to be installed');
-  }
-}
-
+/** Native libraries run outside the extension host: SIGABRT becomes a rejected decode. */
 async function decodeWithSharp(buf: Buffer): Promise<DecodedImage> {
-  const sharp = await loadSharp();
-  const { data, info } = await sharp(buf)
-    .ensureAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  return { width: info.width, height: info.height, data: Buffer.from(data) };
+  const sharpPath = require.resolve('sharp');
+  const script = `
+    const sharp = require(process.argv[1]);
+    const chunks = [];
+    process.stdin.on('data', chunk => chunks.push(chunk));
+    process.stdin.on('end', async () => {
+      try {
+        const { data, info } = await sharp(Buffer.concat(chunks))
+          .resize(1581, 1581, { fit: 'inside', withoutEnlargement: true })
+          .toColourspace('srgb').ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+        const header = Buffer.alloc(8);
+        header.writeUInt32BE(info.width, 0);
+        header.writeUInt32BE(info.height, 4);
+        process.stdout.write(header);
+        process.stdout.write(data);
+      } catch (error) {
+        console.error(error.message);
+        process.exitCode = 1;
+      }
+    });
+  `;
+  return new Promise((resolve, reject) => {
+    // Electron's linked GLib also conflicts with libvips in run-as-node mode.
+    // Use standalone Node for optional formats; ordinary PNG/JPEG need no runtime.
+    const executable = process.versions.electron ? 'node' : process.execPath;
+    const child = execFile(executable, ['-e', script, sharpPath], {
+      env: process.env,
+      encoding: 'buffer',
+      windowsHide: true,
+      timeout: 30_000,
+      maxBuffer: MAX_PIXELS * 4 + 8,
+    }, (error, stdout, stderr) => {
+      if (error) {
+        if (error.code === 'ENOENT') {
+          reject(new Error('WebP/AVIF decoding needs Node.js on PATH. Install Node.js or choose a PNG/JPEG image.'));
+          return;
+        }
+        reject(new Error(`Image decoder failed (${error.signal ?? error.code ?? 'unknown'}): ${stderr.toString().trim() || error.message}`));
+        return;
+      }
+      if (stdout.length < 8) {
+        reject(new Error('Image decoder returned no pixel data'));
+        return;
+      }
+      const width = stdout.readUInt32BE(0);
+      const height = stdout.readUInt32BE(4);
+      const data = stdout.subarray(8);
+      if (!width || !height || width * height > MAX_PIXELS || data.length !== width * height * 4) {
+        reject(new Error('Image decoder returned invalid pixel data'));
+        return;
+      }
+      resolve({ width, height, data });
+    });
+    child.stdin?.on('error', () => { /* The exit callback reports decoder failure. */ });
+    child.stdin?.end(buf);
+  });
 }
 
 const DECODERS: Partial<Record<string, Decoder>> = {
@@ -117,7 +152,7 @@ const DECODERS: Partial<Record<string, Decoder>> = {
   bmp: decodeBmp,
   gif: decodeGif,
   tiff: decodeTiff,
-  webp: decodeWebp,
+  webp: decodeWithSharp,
 };
 
 /** Decode any supported image into RGBA8, downscaling very large inputs. */
@@ -136,34 +171,17 @@ export async function decodeImage(buf: Buffer): Promise<DecodedImage> {
     }
   }
 
-  // For PNG/JPEG/TIFF, optionally pre-scale huge images via sharp.
   const decoded = await decoder(buf);
   if (decoded.width * decoded.height <= MAX_PIXELS) return decoded;
-
-  try {
-    return await downscaleWithSharp(decoded);
-  } catch {
-    return nearestNeighborDownscale(decoded);
-  }
-}
-
-async function downscaleWithSharp(img: DecodedImage): Promise<DecodedImage> {
-  const sharp = await loadSharp();
-  const scale = Math.sqrt(MAX_PIXELS / (img.width * img.height));
-  const target = { w: Math.max(1, Math.round(img.width * scale)), h: Math.max(1, Math.round(img.height * scale)) };
-  const { data, info } = await sharp(img.data, { raw: { width: img.width, height: img.height, channels: 4 } })
-    .resize(target.w, target.h)
-    .ensureAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  return { width: info.width, height: info.height, data: Buffer.from(data) };
+  // Pure JS only: loading libvips here can abort Electron before any catch runs.
+  return nearestNeighborDownscale(decoded);
 }
 
 /** Box/nearest-neighbor downscale — no deps, good enough for color extraction. */
 export function nearestNeighborDownscale(img: DecodedImage): DecodedImage {
-  const scale = Math.sqrt(MAX_PIXELS / (img.width * img.height));
-  const w = Math.max(1, Math.round(img.width * scale));
-  const h = Math.max(1, Math.round(img.height * scale));
+  const scale = Math.min(1, Math.sqrt(MAX_PIXELS / (img.width * img.height)));
+  const w = Math.max(1, Math.floor(img.width * scale));
+  const h = Math.max(1, Math.floor(img.height * scale));
   const out = Buffer.alloc(w * h * 4);
   const xRatio = img.width / w;
   const yRatio = img.height / h;
@@ -185,7 +203,7 @@ export function nearestNeighborDownscale(img: DecodedImage): DecodedImage {
 /** ARGB ints for MCU, skipping transparent + near-transparent pixels. */
 export function extractPixels(img: DecodedImage, maxSamples = 150_000): number[] {
   const total = img.width * img.height;
-  const step = Math.max(1, Math.floor(total / maxSamples));
+  const step = Math.max(1, Math.ceil(total / maxSamples));
   const pixels: number[] = [];
   for (let i = 0; i < total; i += step) {
     const o = i * 4;

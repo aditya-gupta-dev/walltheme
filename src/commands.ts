@@ -10,8 +10,8 @@ export function registerCommands(
   status: StatusBarManager,
 ): vscode.Disposable {
   const registrations: vscode.Disposable[] = [
-    vscode.commands.registerCommand('walltheme.generateFromImage', async () => {
-      await generator.generateFromPicker();
+    vscode.commands.registerCommand('walltheme.generateFromImage', async (image?: vscode.Uri) => {
+      await generator.generateFromPicker(image);
       status.refresh();
     }),
 

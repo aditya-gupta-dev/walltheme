@@ -60,6 +60,22 @@ describe('image format detection', () => {
 });
 
 describe('decode + extraction', () => {
+  test('decodes and downsizes a large PNG without native resizing', async () => {
+    const png = new PNG({ width: 2001, height: 1301 });
+    for (let i = 0; i < png.data.length; i += 4) {
+      png.data[i] = 0x1a;
+      png.data[i + 1] = 0x5e;
+      png.data[i + 2] = 0x63;
+      png.data[i + 3] = 255;
+    }
+    const img = await decodeImage(PNG.sync.write(png));
+    expect(img.width * img.height).toBeLessThanOrEqual(2_500_000);
+    expect(img.data.length).toBe(img.width * img.height * 4);
+    const pixels = extractPixels(img);
+    expect(pixels.length).toBeLessThanOrEqual(150_000);
+    expect(pixels[0]).toBe(argbFromRgb(0x1a, 0x5e, 0x63));
+  });
+
   test('decodes PNG to RGBA and samples opaque pixels', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'walltheme-'));
     const buf = fs.readFileSync(makeTestPng(dir));

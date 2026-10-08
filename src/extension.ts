@@ -11,7 +11,7 @@ import { Logger } from './util/log';
  * matugen-style: WSRGB quantization → HCT seed scoring → tonal palettes →
  * full theme applied via workbench color customizations (instant, no reload).
  */
-export function activate(ctx: vscode.ExtensionContext): void {
+export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
   const generator = new ColorsGenerator(ctx);
   const status = new StatusBarManager(generator);
 
@@ -21,7 +21,7 @@ export function activate(ctx: vscode.ExtensionContext): void {
   status.refresh();
 
   // Re-apply the last generated theme so the look survives restarts.
-  void generator.restoreOnActivation();
+  await generator.restoreOnActivation();
 }
 
 export function deactivate(): void {

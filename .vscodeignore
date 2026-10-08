@@ -2,7 +2,8 @@
 src/**
 scripts/**
 test/**
-node_modules/**
+dist/*test*.js
+dist/*test*.js.map
 dist-tsc/**
 **/*.ts
 **/*.map

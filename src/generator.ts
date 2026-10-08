@@ -55,6 +55,7 @@ interface PersistedState {
   /** Editor token settings we replaced, restored on reset. */
   prevTokenCustomizations?: unknown;
   prevSemanticCustomizations?: unknown;
+  tokenSnapshotCaptured?: boolean;
 }
 
 const THEME_DIR = 'walltheme-generated';
@@ -111,8 +112,8 @@ export class ColorsGenerator implements vscode.Disposable {
   // -------------------------------------------------------------------------
 
   /** "Generate Theme from Image…" (and legacy "Reload Theme…"). */
-  async generateFromPicker(): Promise<void> {
-    const uris = await vscode.window.showOpenDialog({
+  async generateFromPicker(image?: vscode.Uri): Promise<void> {
+    const uris = image ? [image] : await vscode.window.showOpenDialog({
       canSelectMany: false,
       canSelectFiles: true,
       canSelectFolders: false,
@@ -121,6 +122,10 @@ export class ColorsGenerator implements vscode.Disposable {
       filters: { Images: ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif', 'tif', 'tiff'] },
     });
     if (!uris || uris.length === 0) return;
+    if (uris[0].scheme !== 'file') {
+      this.handleFailure('image selection failed', new Error('Choose a local image file.'));
+      return;
+    }
     await this.ctx.workspaceState.update('walltheme.customImagePath', uris[0].fsPath);
     await vscode.window.withProgress({
       location: vscode.ProgressLocation.Notification,
@@ -257,7 +262,7 @@ export class ColorsGenerator implements vscode.Disposable {
       }
       await this.startWatcher(saved.info.sourceKind, saved.info.source);
     } catch (err) {
-      Logger.error('restore failed', err);
+      this.handleFailure('restore failed', err);
     }
   }
 
@@ -366,6 +371,10 @@ export class ColorsGenerator implements vscode.Disposable {
       syntaxStyle,
       variant,
       info,
+      // Keep the original snapshot when generating another image.
+      tokenSnapshotCaptured: previous !== undefined,
+      prevTokenCustomizations: previous?.prevTokenCustomizations,
+      prevSemanticCustomizations: previous?.prevSemanticCustomizations,
     };
 
     await this.applyCustomizations(theme, persisted);
@@ -399,11 +408,10 @@ export class ColorsGenerator implements vscode.Disposable {
 
     const ed = vscode.workspace.getConfiguration('editor');
     // Snapshot what the user had, so Reset can restore it.
-    if (persisted.prevTokenCustomizations === undefined) {
-      persisted.prevTokenCustomizations = ed.get<unknown>('tokenColorCustomizations');
-    }
-    if (persisted.prevSemanticCustomizations === undefined) {
-      persisted.prevSemanticCustomizations = ed.get<unknown>('semanticTokenColorCustomizations');
+    if (!persisted.tokenSnapshotCaptured) {
+      persisted.prevTokenCustomizations = ed.inspect('tokenColorCustomizations')?.globalValue;
+      persisted.prevSemanticCustomizations = ed.inspect('semanticTokenColorCustomizations')?.globalValue;
+      persisted.tokenSnapshotCaptured = true;
     }
 
     const tokCustom = { ...(ed.get<Record<string, unknown>>('tokenColorCustomizations') ?? {}) };
@@ -479,6 +487,8 @@ export class ColorsGenerator implements vscode.Disposable {
       if (parsed.version === 1 && parsed.colors && parsed.info) {
         // Older image sources are restored as static images, without desktop detection.
         if (parsed.info.sourceKind !== 'seed') parsed.info.sourceKind = 'image';
+        // Legacy state already contains the original token snapshots.
+        parsed.tokenSnapshotCaptured = true;
         return parsed;
       }
     } catch {
@@ -491,7 +501,9 @@ export class ColorsGenerator implements vscode.Disposable {
     const msg = err instanceof Error ? err.message : String(err);
     Logger.error(what, err);
     this.setState('error', msg);
-    void vscode.window.showErrorMessage(`WallTheme: ${msg}`);
+    void vscode.window.showErrorMessage(`WallTheme: ${msg}`, 'Show Logs').then((choice) => {
+      if (choice === 'Show Logs') Logger.show();
+    });
   }
 
   /** VS Code's current theme kind, used when `walltheme.isDark` is null. */
