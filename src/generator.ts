@@ -465,14 +465,21 @@ export class ColorsGenerator implements vscode.Disposable {
       persisted.tokenSnapshotCaptured = true;
     }
 
-    const tokCustom = { ...(ed.get<Record<string, unknown>>('tokenColorCustomizations') ?? {}) };
+    const tokCustom = { ...(ed.inspect<Record<string, unknown>>('tokenColorCustomizations')?.globalValue ?? {}) };
     tokCustom.textMateRules = theme.tokenColors;
+    // Theme-scoped settings take precedence over global syntax rules.
+    if (persisted.appliedThemeLabel) {
+      tokCustom[`[${persisted.appliedThemeLabel}]`] = { textMateRules: theme.tokenColors };
+    }
     await ed.update('tokenColorCustomizations', tokCustom, vscode.ConfigurationTarget.Global);
 
-    const semCustom = { ...(ed.get<Record<string, unknown>>('semanticTokenColorCustomizations') ?? {}) };
+    const semCustom = { ...(ed.inspect<Record<string, unknown>>('semanticTokenColorCustomizations')?.globalValue ?? {}) };
     const rules = { ...((semCustom.rules as Record<string, unknown> | undefined) ?? {}) };
     for (const [key, value] of Object.entries(theme.semanticTokenColors)) rules[key] = value;
     semCustom.rules = rules;
+    if (persisted.appliedThemeLabel) {
+      semCustom[`[${persisted.appliedThemeLabel}]`] = { enabled: true, rules: theme.semanticTokenColors };
+    }
     await ed.update('semanticTokenColorCustomizations', semCustom, vscode.ConfigurationTarget.Global);
   }
 

@@ -13,6 +13,7 @@ Powered by Google's official [`@material/material-color-utilities`](https://gith
 - **Generate Theme from Image** — pick any image, extract a Material palette, and apply the generated theme
 - **Theme dropdown** — click WallTheme in the status bar to choose an image or manage your theme
 - **Instant apply** — colors land via `workbench.colorCustomizations`, so the whole UI re-skins with **no reload or restart**
+- **Code colors** — the same image palette colors keywords, variables, parameters, functions, types, strings, numbers, and comments through TextMate and semantic token rules; both follow `walltheme.syntaxStyle`
 - **Full M3 schemes** — tonalSpot, vibrant, expressive, content, fidelity, rainbow, fruitSalad, neutral, monochrome, contrast (same set matugen exposes)
 - **Auto reload** — watches your chosen image and regenerates when it changes
 - **Dark/light aware** — follows VS Code's theme kind, or force either

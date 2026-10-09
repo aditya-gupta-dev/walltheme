@@ -2,8 +2,8 @@
  * Full VS Code theme generator: maps an M3 scheme onto every VS Code
  * color token we care about, then emits standard VS Code theme JSON.
  */
-import type { SchemeColorKey } from './mcu';
 import { TOKEN_PALETTES } from './tokens';
+import { argbFromHex, Contrast, Hct, hexFromArgb } from './mcu';
 
 export interface ThemeColors {
   primary: string;
@@ -474,28 +474,51 @@ function tokenScope(kind: string): string[] {
   }
 }
 
-const SEMANTIC_MAP: Record<string, SchemeColorKey> = {
-  namespace: 'onSurfaceVariant',
-  type: 'tertiary',
-  class: 'tertiary',
-  enum: 'tertiary',
-  interface: 'tertiary',
-  struct: 'tertiary',
-  typeParameter: 'onTertiaryContainer',
-  parameter: 'onSurface',
-  variable: 'onSurface',
-  property: 'onSurfaceVariant',
-  variableReadonly: 'secondary',
-  'variable.other.readonly': 'secondary',
-  function: 'primary',
-  method: 'primary',
-  macro: 'inversePrimary',
-  label: 'onSurfaceVariant',
+/** Semantic token selectors use the same kinds and style as TextMate rules. */
+const SEMANTIC_KINDS: Record<string, string> = {
+  namespace: 'typeClass',
+  type: 'typeClass',
+  class: 'typeClass',
+  enum: 'typeClass',
+  interface: 'typeInterface',
+  struct: 'typeClass',
+  typeParameter: 'typeInterface',
+  parameter: 'parameter',
+  variable: 'variable',
+  property: 'property',
+  'variable.readonly': 'constant',
+  'property.readonly': 'constant',
+  enumMember: 'constant',
+  function: 'function',
+  method: 'methodCall',
+  macro: 'constant',
+  decorator: 'function',
+  event: 'property',
+  label: 'property',
+  keyword: 'keyword',
+  modifier: 'storageType',
+  comment: 'comment',
+  string: 'string',
+  number: 'number',
+  regexp: 'regex',
+  operator: 'operator',
 };
 
 export function generateTheme(opts: GenerateThemeOptions): WriteableTheme {
   const { colors: c, isDark, syntaxStyle } = opts;
   const palette = TOKEN_PALETTES[syntaxStyle] ?? TOKEN_PALETTES['material'];
+  const backgroundTone = Hct.fromInt(argbFromHex(c.surface)).tone;
+  const codeColor = (kind: string): string => {
+    const color = c[palette[kind]];
+    const hct = Hct.fromInt(argbFromHex(color));
+    const minimum = kind === 'comment' ? 3 : 4.5;
+    if (Contrast.ratioOfTones(hct.tone, backgroundTone) >= minimum) return color;
+    // Retain palette hue/chroma while moving text away from the editor background.
+    const tone = backgroundTone < 50
+      ? Contrast.lighterUnsafe(backgroundTone, minimum + 0.1)
+      : Contrast.darkerUnsafe(backgroundTone, minimum + 0.1);
+    return hexFromArgb(Hct.from(hct.hue, hct.chroma, tone).toInt()).toUpperCase();
+  };
 
   const kindIsDark = isDark;
   const theme: WriteableTheme = {
@@ -507,10 +530,10 @@ export function generateTheme(opts: GenerateThemeOptions): WriteableTheme {
     semanticTokenColors: {},
   };
 
-  for (const [kind, role] of Object.entries(palette)) {
+  for (const kind of Object.keys(palette)) {
     const scopes = tokenScope(kind);
     if (scopes.length === 0) continue;
-    theme.tokenColors.push({ scope: scopes, settings: { foreground: c[role] } });
+    theme.tokenColors.push({ scope: scopes, settings: { foreground: codeColor(kind) } });
   }
 
   // Base text fallback.
@@ -519,8 +542,8 @@ export function generateTheme(opts: GenerateThemeOptions): WriteableTheme {
     settings: { foreground: c.onSurface },
   });
 
-  for (const [semantic, role] of Object.entries(SEMANTIC_MAP)) {
-    theme.semanticTokenColors[semantic] = c[role];
+  for (const [semantic, kind] of Object.entries(SEMANTIC_KINDS)) {
+    theme.semanticTokenColors[semantic] = codeColor(kind);
   }
 
   return theme;

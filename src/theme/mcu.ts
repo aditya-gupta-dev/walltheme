@@ -4,6 +4,7 @@
  * through here so the rest of the extension never touches raw MCU types.
  */
 import {
+  Contrast,
   DynamicScheme,
   Hct,
   MaterialDynamicColors,
@@ -25,7 +26,7 @@ import {
   hexFromArgb,
 } from '@material/material-color-utilities';
 
-export { argbFromHex, argbFromRgb, hexFromArgb, Hct, TonalPalette };
+export { argbFromHex, argbFromRgb, hexFromArgb, Hct, TonalPalette, Contrast };
 
 export interface Rgba {
   r: number;

@@ -40,7 +40,7 @@ export async function run(): Promise<void> {
     await vscode.commands.executeCommand('walltheme.generateFromImage', vscode.Uri.file(image));
     const workbench = vscode.workspace.getConfiguration('workbench').get<Record<string, string>>('colorCustomizations');
     assert.match(workbench?.['editor.background'] ?? '', /^#[0-9A-F]{6}$/);
-    const tokens = vscode.workspace.getConfiguration('editor').get<{ textMateRules: unknown[] }>('tokenColorCustomizations');
+    const tokens = vscode.workspace.getConfiguration('editor').get<{ textMateRules: unknown[]; [key: string]: unknown }>('tokenColorCustomizations');
     assert.ok((tokens?.textMateRules.length ?? 0) > 15);
     const storage = path.join(process.env.WALLTHEME_TEST_USER_DATA!, 'User/globalStorage/walltheme.walltheme');
     const state = JSON.parse(fs.readFileSync(path.join(storage, 'state.json'), 'utf8'));
@@ -48,6 +48,10 @@ export async function run(): Promise<void> {
     assert.equal(state.colors.background, workbench?.['editor.background']);
     const history = JSON.parse(fs.readFileSync(path.join(storage, 'walltheme-generated/generated-themes.json'), 'utf8'));
     assert.equal(history.themes.at(-1).source, image);
+    const generated = history.themes.at(-1).theme;
+    assert.deepEqual(tokens?.[`[${state.appliedThemeLabel}]`], { textMateRules: generated.tokenColors });
+    const semantic = vscode.workspace.getConfiguration('editor').get<Record<string, unknown>>('semanticTokenColorCustomizations');
+    assert.deepEqual(semantic?.[`[${state.appliedThemeLabel}]`], { enabled: true, rules: generated.semanticTokenColors });
     console.log(`PASS: applied UI/syntax colors and archived ${path.basename(image)}`);
   }
   await vscode.commands.executeCommand('walltheme.resetTheme');
