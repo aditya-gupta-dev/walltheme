@@ -1,4 +1,13 @@
 import * as esbuild from 'esbuild';
+import * as fs from 'node:fs';
+
+fs.mkdirSync('dist/themes', { recursive: true });
+for (const mode of ['dark', 'light']) {
+  const target = `dist/themes/walltheme-${mode}.json`;
+  if (process.argv.includes('--reset-themes') || !fs.existsSync(target)) {
+    fs.copyFileSync(`themes/walltheme-${mode}.json`, target);
+  }
+}
 
 const watch = process.argv.includes('--watch');
 const prod = process.argv.includes('--production');

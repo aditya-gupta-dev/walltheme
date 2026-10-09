@@ -64,6 +64,11 @@
         "command": "walltheme.chooseSeed",
         "title": "WallTheme: Choose Source Color\u2026",
         "category": "WallTheme"
+      },
+      {
+        "command": "walltheme.openThemeFiles",
+        "title": "Open Generated Theme Files\u2026",
+        "category": "WallTheme"
       }
     ],
     "configuration": {
@@ -170,16 +175,14 @@
     },
     "themes": [
       {
-        "id": "walltheme-dark",
         "label": "WallTheme Dark",
         "uiTheme": "vs-dark",
-        "path": "./themes/walltheme-dark.json"
+        "path": "./dist/themes/walltheme-dark.json"
       },
       {
-        "id": "walltheme-light",
         "label": "WallTheme Light",
         "uiTheme": "vs",
-        "path": "./themes/walltheme-light.json"
+        "path": "./dist/themes/walltheme-light.json"
       }
     ]
   },
@@ -190,7 +193,7 @@
     "test": "bun test",
     "gen:icon": "bun run scripts/make-icon.mjs",
     "pretest": "bun run typecheck && bun run compile",
-    "vscode:prepublish": "bun run compile",
+    "vscode:prepublish": "node scripts/esbuild.mjs --production --reset-themes",
     "package": "vsce package",
     "clean": "rm -rf dist *.vsix"
   },

@@ -12,7 +12,7 @@ Powered by Google's official [`@material/material-color-utilities`](https://gith
 
 - **Generate Theme from Image** — pick any image, extract a Material palette, and apply the generated theme
 - **Theme dropdown** — click WallTheme in the status bar to choose an image or manage your theme
-- **Instant apply** — colors land via `workbench.colorCustomizations`, so the whole UI re-skins with **no reload or restart**
+- **Standalone themes** — UI and code colors live in generated theme JSON; settings only select the theme name
 - **Code colors** — the same image palette colors keywords, variables, parameters, functions, types, strings, numbers, and comments through TextMate and semantic token rules; both follow `walltheme.syntaxStyle`
 - **Full M3 schemes** — tonalSpot, vibrant, expressive, content, fidelity, rainbow, fruitSalad, neutral, monochrome, contrast (same set matugen exposes)
 - **Auto reload** — watches your chosen image and regenerates when it changes
@@ -26,7 +26,7 @@ Powered by Google's official [`@material/material-color-utilities`](https://gith
 1. Open the folder in VS Code and press **F5** (Run Extension). An *Extension Development Host* window opens with WallTheme loaded.
 2. Press `Ctrl+Shift+P` / `Cmd+Shift+P` and type `WallTheme`:
 
-Choose **WallTheme: Generate Theme from Image…**, then select your image. WallTheme extracts colors and applies the generated UI and syntax colors immediately. No matugen installation needed.
+Choose **WallTheme: Generate Theme from Image…**, then select your image. WallTheme extracts colors and writes a complete UI and syntax theme. In an installed extension, select **Reload Window** when prompted to load updated colors. No matugen installation needed.
 
 | Command | What it does |
 | --- | --- |
@@ -36,7 +36,8 @@ Choose **WallTheme: Generate Theme from Image…**, then select your image. Wall
 | **WallTheme: Choose Source Color…** | Seed the palette from a hex color |
 | **WallTheme: Preview Palette** | Ranked extracted colors; click to copy or re-seed |
 | **WallTheme: Export Theme as JSON…** | Save a shareable standalone theme file |
-| **WallTheme: Reset Theme** | Remove all WallTheme customizations |
+| **WallTheme: Open Generated Theme Files…** | View active JSON files or history with exact paths |
+| **WallTheme: Reset Theme** | Restore the previous theme selection |
 
 There's also a `$(paintcan) WallTheme` status bar item — click it to open the actions dropdown, then select **Generate Theme from Image…**.
 
@@ -62,11 +63,23 @@ code --install-extension walltheme-0.1.0.vsix
 
 ## How the theming works
 
-The extension selects **WallTheme Dark** or **WallTheme Light** and writes generated colors into `workbench.colorCustomizations` and `editor.tokenColorCustomizations` (global scope). This applies instantly. Choosing another theme with **Ctrl+K Ctrl+T** clears WallTheme overrides, restores your previous custom colors and syntax settings, and stops image auto-reload. **Reset Theme** also restores the theme selected before generation. Generated theme history remains available.
+The extension writes a complete theme JSON containing UI colors, TextMate syntax rules, and semantic token colors. It registers the files as **WallTheme Dark** and **WallTheme Light**; the only theme application setting it changes is:
 
-The last generated theme is restored on startup only while its WallTheme entry remains selected.
+```json
+{ "workbench.colorTheme": "WallTheme Dark" }
+```
 
-Generation also appends the complete theme to `generated-themes.json`. Previous entries survive new generations and Reset Theme. The latest saved theme is included when history is first created; themes overwritten before this feature cannot be recovered.
+Choosing another theme with **Ctrl+K Ctrl+T** works normally and stops image watching. **Reset Theme** restores your previous selection. Existing user color customizations remain untouched and retain their normal VS Code precedence. On upgrade from older WallTheme versions, the previous generated settings overrides are removed once using saved originals.
+
+VS Code watches theme files live in an Extension Development Host. Installed extensions show **Reload Window** after changing a theme file so cached colors are reliably refreshed. No automatic window reload occurs.
+
+### Generated file locations
+
+- **Active files:** `<WallTheme extension directory>/dist/themes/walltheme-dark.json` and `walltheme-light.json`. When running F5 from this project, these are under the project's `dist/themes/`. A normal installation puts them under `~/.vscode/extensions/walltheme.walltheme-<version>/dist/themes/`.
+- **Backups and history:** `<VS Code global storage>/walltheme.walltheme/walltheme-generated/`, containing the latest `walltheme-dark.json` / `walltheme-light.json` and `generated-themes.json` history. On standard Linux VS Code, this is `~/.config/Code/User/globalStorage/walltheme.walltheme/walltheme-generated/`. Custom profiles and other operating systems use their respective VS Code storage locations.
+- **State:** `state.json` next to the backup directory records the palette, source image, and previous theme selection.
+
+Run **WallTheme: Open Generated Theme Files…** to view the exact active file or history path for your installation. Backups/history survive theme switching and Reset Theme. Extension updates may replace active files; saved state restores an active generated theme from its palette on startup. Previously overwritten themes from before history was introduced cannot be recovered.
 
 ## Development
 

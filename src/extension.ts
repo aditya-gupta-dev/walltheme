@@ -9,7 +9,7 @@ import { Logger } from './util/log';
  *
  * Generates a complete color theme from a chosen image,
  * matugen-style: WSRGB quantization → HCT seed scoring → tonal palettes →
- * full theme applied via workbench color customizations (instant, no reload).
+ * full UI and syntax theme saved as JSON and selected by name.
  */
 export async function activate(ctx: vscode.ExtensionContext): Promise<void> {
   const generator = new ColorsGenerator(ctx);

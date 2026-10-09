@@ -21,6 +21,7 @@ export function registerCommands(
         { label: '$(symbol-color) Choose Source Color…', description: 'Generate from a hex color', command: 'walltheme.chooseSeed' },
         { label: '$(paintcan) Preview Palette', description: 'View extracted colors', command: 'walltheme.preview' },
         { label: '$(export) Export Theme as JSON…', description: 'Save the generated theme', command: 'walltheme.exportTheme' },
+        { label: '$(go-to-file) Open Generated Theme Files…', description: 'View active files and history paths', command: 'walltheme.openThemeFiles' },
         { label: '$(discard) Reset Theme', description: 'Restore previous appearance', command: 'walltheme.resetTheme' },
       ], {
         title: 'WallTheme',
@@ -41,6 +42,7 @@ export function registerCommands(
     }),
 
     vscode.commands.registerCommand('walltheme.exportTheme', () => generator.exportTheme()),
+    vscode.commands.registerCommand('walltheme.openThemeFiles', () => generator.openThemeFiles()),
 
     vscode.commands.registerCommand('walltheme.preview', () => generator.previewPalette()),
 
