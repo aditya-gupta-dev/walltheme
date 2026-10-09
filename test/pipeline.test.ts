@@ -101,13 +101,10 @@ describe('decode + extraction', () => {
     expect(extractPixels(image)).toHaveLength(1);
   });
 
-  test('decodes WebP through the isolated native decoder', async () => {
+  test('rejects unsupported WebP and unknown formats with actionable errors', async () => {
     const webp = Buffer.from('UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoIAAgAAUAmJaACdLoAA5gA/vPfZrQtCBz/5Bjt57ed2AAA', 'base64');
-    const image = await decodeImage(webp);
-    expect(image.width).toBe(8);
-    expect(image.height).toBe(8);
-    expect(image.data.length).toBe(8 * 8 * 4);
-    expect(extractPixels(image).length).toBeGreaterThan(0);
+    await expect(decodeImage(webp)).rejects.toThrow('Choose a PNG, JPEG, GIF, BMP, or TIFF image.');
+    await expect(decodeImage(Buffer.from('unsupported data'))).rejects.toThrow('Unsupported image format.');
   });
 
   test('decodes and downsizes a large PNG without native resizing', async () => {

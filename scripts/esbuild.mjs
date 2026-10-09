@@ -17,7 +17,7 @@ const options = {
   entryPoints: ['src/extension.ts'],
   bundle: true,
   outfile: 'dist/extension.js',
-  external: ['vscode', 'sharp'],
+  external: ['vscode'],
   format: 'cjs',
   platform: 'node',
   target: 'node18',

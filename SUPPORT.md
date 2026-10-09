@@ -7,4 +7,4 @@ Include your VS Code version, operating system, image format, steps to reproduce
 
 If generated colors have not loaded, select **Reload Window** in the notification. Existing user or workspace color customizations keep their usual precedence over themes.
 
-For WebP/AVIF, install Node.js 20.9 or newer and restart VS Code so PATH changes take effect. PNG/JPEG/GIF/BMP/TIFF need no additional runtime.
+Supported image formats are PNG/JPEG/GIF/BMP/TIFF. Convert WebP/AVIF to PNG/JPEG before selecting them. No additional runtime is needed.

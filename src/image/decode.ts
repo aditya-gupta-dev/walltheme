@@ -1,4 +1,3 @@
-import { execFile } from 'child_process';
 import type { Rgba } from '../theme/mcu';
 import { argbFromRgb } from '../theme/mcu';
 
@@ -91,73 +90,12 @@ async function decodeTiff(buf: Buffer): Promise<DecodedImage> {
   return { width: ifds[0].width, height: ifds[0].height, data: Buffer.from(rgba) };
 }
 
-/** Native libraries run outside the extension host: SIGABRT becomes a rejected decode. */
-async function decodeWithSharp(buf: Buffer): Promise<DecodedImage> {
-  const sharpPath = require.resolve('sharp');
-  const script = `
-    const sharp = require(process.argv[1]);
-    const chunks = [];
-    process.stdin.on('data', chunk => chunks.push(chunk));
-    process.stdin.on('end', async () => {
-      try {
-        const { data, info } = await sharp(Buffer.concat(chunks))
-          .resize(1581, 1581, { fit: 'inside', withoutEnlargement: true })
-          .toColourspace('srgb').ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-        const header = Buffer.alloc(8);
-        header.writeUInt32BE(info.width, 0);
-        header.writeUInt32BE(info.height, 4);
-        process.stdout.write(header);
-        process.stdout.write(data);
-      } catch (error) {
-        console.error(error.message);
-        process.exitCode = 1;
-      }
-    });
-  `;
-  return new Promise((resolve, reject) => {
-    // Electron's linked GLib also conflicts with libvips in run-as-node mode.
-    // Use standalone Node for optional formats; ordinary PNG/JPEG need no runtime.
-    const executable = process.versions.electron || process.versions.bun ? 'node' : process.execPath;
-    const child = execFile(executable, ['-e', script, sharpPath], {
-      env: process.env,
-      encoding: 'buffer',
-      windowsHide: true,
-      timeout: 30_000,
-      maxBuffer: MAX_PIXELS * 4 + 8,
-    }, (error, stdout, stderr) => {
-      if (error) {
-        if (error.code === 'ENOENT') {
-          reject(new Error('WebP/AVIF decoding needs Node.js 20.9 or newer on PATH. Install Node.js or choose a PNG/JPEG image.'));
-          return;
-        }
-        reject(new Error(`Image decoder failed (${error.signal ?? error.code ?? 'unknown'}): ${stderr.toString().trim() || error.message}`));
-        return;
-      }
-      if (stdout.length < 8) {
-        reject(new Error('Image decoder returned no pixel data'));
-        return;
-      }
-      const width = stdout.readUInt32BE(0);
-      const height = stdout.readUInt32BE(4);
-      const data = stdout.subarray(8);
-      if (!width || !height || width * height > MAX_PIXELS || data.length !== width * height * 4) {
-        reject(new Error('Image decoder returned invalid pixel data'));
-        return;
-      }
-      resolve({ width, height, data });
-    });
-    child.stdin?.on('error', () => { /* The exit callback reports decoder failure. */ });
-    child.stdin?.end(buf);
-  });
-}
-
 const DECODERS: Partial<Record<string, Decoder>> = {
   png: decodePng,
   jpeg: decodeJpeg,
   bmp: decodeBmp,
   gif: decodeGif,
   tiff: decodeTiff,
-  webp: decodeWithSharp,
 };
 
 /** Decode any supported image into RGBA8, downscaling very large inputs. */
@@ -166,19 +104,12 @@ export async function decodeImage(buf: Buffer): Promise<DecodedImage> {
   const decoder = DECODERS[format];
 
   if (format === 'unknown' || !decoder) {
-    // Last resort: sharp handles avif/heic/etc when present.
-    try {
-      return await decodeWithSharp(buf);
-    } catch (err) {
-      throw new Error(
-        `Unsupported image format (magic: ${format}). Install 'sharp' for more formats. ${err instanceof Error ? err.message : ''}`,
-      );
-    }
+    throw new Error('Unsupported image format. Choose a PNG, JPEG, GIF, BMP, or TIFF image.');
   }
 
   const decoded = await decoder(buf);
   if (decoded.width * decoded.height <= MAX_PIXELS) return decoded;
-  // Pure JS only: loading libvips here can abort Electron before any catch runs.
+  // Downscale in JavaScript without native libraries.
   return nearestNeighborDownscale(decoded);
 }
 

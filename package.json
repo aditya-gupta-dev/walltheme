@@ -193,7 +193,7 @@
     "test": "bun test",
     "pretest": "bun run typecheck && bun run compile",
     "vscode:prepublish": "bun run check && node scripts/esbuild.mjs --production --reset-themes",
-    "package": "bun install --frozen-lockfile --os \"*\" --cpu \"*\" && vsce package && node scripts/verify-package.mjs",
+    "package": "bun install --frozen-lockfile && vsce package --no-dependencies && node scripts/verify-package.mjs",
     "clean": "rm -rf dist *.vsix",
     "check": "bun run typecheck && bun test",
     "publish": "node scripts/publish.mjs"
@@ -205,9 +205,6 @@
     "jpeg-js": "^0.4.4",
     "pngjs": "^7.0.0",
     "utif": "^3.1.0"
-  },
-  "optionalDependencies": {
-    "sharp": "0.35.5"
   },
   "devDependencies": {
     "@types/bun": "^1.1.10",

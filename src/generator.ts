@@ -150,7 +150,7 @@ export class ColorsGenerator implements vscode.Disposable {
       canSelectFolders: false,
       openLabel: 'Use as theme source',
       title: 'WallTheme — choose an image to extract colors from',
-      filters: { Images: ['png', 'jpg', 'jpeg', 'webp', 'bmp', 'gif', 'tif', 'tiff'] },
+      filters: { Images: ['png', 'jpg', 'jpeg', 'bmp', 'gif', 'tif', 'tiff'] },
     });
     if (!uris || uris.length === 0) return;
     if (uris[0].scheme !== 'file') {

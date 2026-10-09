@@ -49,9 +49,6 @@ export async function run(): Promise<void> {
   const images = [path.join(dir, 'large.png')];
   fs.writeFileSync(images[0], PNG.sync.write(png));
   if (process.env.WALLTHEME_TEST_IMAGE) images.push(process.env.WALLTHEME_TEST_IMAGE);
-  const webp = path.join(dir, 'sample.webp');
-  fs.writeFileSync(webp, Buffer.from('UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoIAAgAAUAmJaACdLoAA5gA/vPfZrQtCBz/5Bjt57ed2AAA', 'base64'));
-  images.push(webp);
   for (const image of images) {
     await vscode.commands.executeCommand('walltheme.generateFromImage', vscode.Uri.file(image));
     assert.deepEqual(vscode.workspace.getConfiguration('workbench').inspect('colorCustomizations')?.globalValue, previousWorkbench);

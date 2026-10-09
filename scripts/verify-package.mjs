@@ -54,11 +54,6 @@ for (const theme of packaged.contributes.themes) {
   assert(generated.semanticHighlighting);
   assert.equal(Object.hasOwn(generated, 'source'), false);
 }
-for (const platform of ['darwin-arm64', 'darwin-x64', 'linux-arm', 'linux-arm64', 'linux-x64', 'linuxmusl-arm64', 'linuxmusl-x64', 'win32-arm64', 'win32-ia32', 'win32-x64']) {
-  assert(names.has(`extension/node_modules/@img/sharp-${platform}/package.json`), `Missing native decoder for ${platform}; use bun run package`);
-  if (!platform.startsWith('win32')) assert(names.has(`extension/node_modules/@img/sharp-libvips-${platform}/package.json`), `Missing libvips for ${platform}`);
-}
-for (const dependency of ['sharp', '@img/colour', 'detect-libc', 'semver']) {
-  assert(names.has(`extension/node_modules/${dependency}/package.json`), `Missing runtime dependency ${dependency}`);
-}
-console.log(`Validated ${file}: icon, metadata, default themes, docs, native platforms, and excluded development/personal files.`);
+assert(![...names].some(name => name.startsWith('extension/node_modules/')), 'Dependencies must be bundled; node_modules must not ship');
+assert(!Object.hasOwn(packaged, 'optionalDependencies'), 'Native decoder dependencies must not ship');
+console.log(`Validated ${file}: icon, metadata, default themes, docs, and no node_modules or personal files.`);

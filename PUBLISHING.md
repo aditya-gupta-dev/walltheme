@@ -17,9 +17,9 @@ bun install --frozen-lockfile
 bun run package
 ```
 
-Packaging installs optional binaries for all supported operating systems and architectures, runs type checking and pipeline tests, creates clean default theme files, builds a production bundle, packages `walltheme-0.1.0.vsix`, and checks its contents. Do not publish a package built using only the current machine's native decoder binaries.
+Packaging runs type checking and pipeline tests, creates clean default theme files, builds a production bundle, packages `walltheme-0.1.0.vsix`, and checks its contents. One platform-independent VSIX works on Windows, macOS, and Linux without native decoder dependencies.
 
-The package includes the supplied PNG icon, README, MIT license, changelog, support guide, bundled extension, default themes, and optional native decoder dependencies. It excludes tests, source maps, build tools, development files, and personal generated themes/history.
+The package includes the supplied PNG icon, README, MIT license, changelog, support guide, bundled extension, default themes. It excludes tests, source maps, build tools, development files, node_modules, native binaries, and personal generated themes/history.
 
 The GitHub build workflow checks the pipeline on Linux, Windows, and macOS and uploads a validated VSIX artifact. Builds do not publish automatically.
 
@@ -29,7 +29,7 @@ The GitHub build workflow checks the pipeline on Linux, Windows, and macOS and u
 code --install-extension walltheme-0.1.0.vsix --force
 ```
 
-Generate from PNG/JPEG and WebP, check light/dark modes, reload when prompted, open generated files, export JSON, and switch away with Ctrl+K Ctrl+T. WebP/AVIF require Node.js 20.9+ on PATH; the other supported formats do not. Confirm UI and code colors load after reload and existing custom settings remain unchanged.
+Generate from PNG/JPEG, check light/dark modes, reload when prompted, open generated files, export JSON, and switch away with Ctrl+K Ctrl+T. Supported image formats are PNG/JPEG/GIF/BMP/TIFF, with no additional runtime needed. WebP/AVIF are unsupported. Confirm UI and code colors load after reload and existing custom settings remain unchanged.
 
 ## Upload to Marketplace
 

@@ -95,10 +95,10 @@ bun run watch      # incremental rebuild
 
 ## Notes
 
-- PNG, JPEG, GIF, BMP, and TIFF work without additional software. WebP/AVIF and additional native formats require standalone **Node.js 20.9+** on PATH. The VSIX includes optional native decoders for their supported Windows, macOS, and Linux architectures.
+- Supported formats: **PNG, JPEG, GIF, BMP, and TIFF**. WebP/AVIF are not supported; convert them to PNG/JPEG first. No standalone Node.js or native decoder installation is needed.
 - This extension runs in desktop VS Code, including local UI windows connected to remote workspaces. Browser-only VS Code is not supported.
 - Images and palettes stay local. WallTheme makes no network requests and collects no telemetry.
-- PNG/JPEG resizing uses JavaScript. Optional native decoders run in a separate process, so decoder failures cannot close the extension host.
+- Image decoding and resizing use bundled JavaScript. The VSIX contains no native decoder binaries or `node_modules` directory.
 
 ### Debugging
 
