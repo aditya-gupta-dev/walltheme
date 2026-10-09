@@ -19,7 +19,6 @@ import {
   Hct,
   hexFromArgb,
   quantizeAndScore,
-  SCHEME_COLOR_KEYS,
   schemeToHexMap,
   TonalPalette,
 } from './theme/mcu';
@@ -56,6 +55,10 @@ interface PersistedState {
   prevTokenCustomizations?: unknown;
   prevSemanticCustomizations?: unknown;
   tokenSnapshotCaptured?: boolean;
+  appliedThemeLabel?: string;
+  prevColorTheme?: string;
+  prevWorkbenchCustomizations?: Record<string, unknown>;
+  workbenchSnapshotCaptured?: boolean;
 }
 
 const THEME_DIR = 'walltheme-generated';
@@ -86,8 +89,25 @@ export class ColorsGenerator implements vscode.Disposable {
   private watchMode: SourceKind | 'none' = 'none';
   private watchSource = '';
   private lastKey = '';
+  private generationEpoch = 0;
+  private application: Promise<void> | undefined;
+  private activeSnapshot: PersistedState | undefined;
+  private resetting = false;
+  private readonly themeListener: vscode.Disposable;
 
-  constructor(private readonly ctx: vscode.ExtensionContext) {}
+  constructor(private readonly ctx: vscode.ExtensionContext) {
+    this.themeListener = vscode.workspace.onDidChangeConfiguration((event) => {
+      if (this.resetting || !event.affectsConfiguration('workbench.colorTheme')) return;
+      const saved = this.activeSnapshot ?? this.readPersisted();
+      if (!saved) {
+        if (this.state === 'working') void this.reset(false);
+        return;
+      }
+      const selected = vscode.workspace.getConfiguration('workbench').get<string>('colorTheme');
+      if (selected === saved.appliedThemeLabel) return;
+      void this.reset(false);
+    });
+  }
 
   // -------------------------------------------------------------------------
   // State
@@ -159,20 +179,41 @@ export class ColorsGenerator implements vscode.Disposable {
   }
 
   /** "Reset Theme" — remove our color customizations, restore previous settings. */
-  async reset(): Promise<void> {
+  async reset(notify = true): Promise<void> {
+    if (this.resetting) return;
+    this.resetting = true;
+    this.generationEpoch++;
+    this.stopWatcher();
     try {
-      const saved = this.readPersisted();
-      const dummy = Object.fromEntries(SCHEME_COLOR_KEYS.map((k) => [k, '#000000'])) as unknown as ThemeColors;
-      const probe = generateTheme({ colors: dummy, isDark: true, syntaxStyle: 'material' });
+      await this.application;
+      const saved = this.activeSnapshot ?? this.readPersisted();
+      if (!saved) {
+        this.info = undefined;
+        this.setState('idle');
+        return;
+      }
+      const generated = generateTheme({ colors: saved.colors, isDark: saved.isDark, syntaxStyle: saved.syntaxStyle });
 
       const wb = vscode.workspace.getConfiguration('workbench');
-      const wbCustom = { ...(wb.get<Record<string, unknown>>('colorCustomizations') ?? {}) };
-      for (const key of Object.keys(probe.colors)) delete wbCustom[key];
+      const wbCustom = { ...(wb.inspect<Record<string, unknown>>('colorCustomizations')?.globalValue ?? {}) };
+      for (const [key, value] of Object.entries(generated.colors)) {
+        if (saved.workbenchSnapshotCaptured && wbCustom[key] !== value) continue;
+        if (saved.prevWorkbenchCustomizations && key in saved.prevWorkbenchCustomizations) {
+          wbCustom[key] = saved.prevWorkbenchCustomizations[key];
+        } else {
+          delete wbCustom[key];
+        }
+      }
       await wb.update('colorCustomizations', Object.keys(wbCustom).length > 0 ? wbCustom : undefined, vscode.ConfigurationTarget.Global);
 
       const ed = vscode.workspace.getConfiguration('editor');
       await ed.update('tokenColorCustomizations', saved?.prevTokenCustomizations ?? undefined, vscode.ConfigurationTarget.Global);
       await ed.update('semanticTokenColorCustomizations', saved?.prevSemanticCustomizations ?? undefined, vscode.ConfigurationTarget.Global);
+
+      // Preserve a theme chosen in the picker; manual Reset restores the original.
+      if (wb.get<string>('colorTheme') === saved.appliedThemeLabel) {
+        await wb.update('colorTheme', saved.prevColorTheme, vscode.ConfigurationTarget.Global);
+      }
 
       try {
         fs.rmSync(this.stateFile, { force: true });
@@ -180,12 +221,15 @@ export class ColorsGenerator implements vscode.Disposable {
         // ignore
       }
       this.info = undefined;
+      this.activeSnapshot = undefined;
       this.stopWatcher();
       this.setState('idle');
       Logger.info('theme reset — customizations removed');
-      void vscode.window.showInformationMessage('WallTheme: theme reset. Your selected color theme is back in control.');
+      if (notify) void vscode.window.showInformationMessage('WallTheme: theme reset. Your selected color theme is back in control.');
     } catch (err) {
       this.handleFailure('reset failed', err);
+    } finally {
+      this.resetting = false;
     }
   }
 
@@ -244,43 +288,31 @@ export class ColorsGenerator implements vscode.Disposable {
 
   /** Startup: re-apply the persisted theme instantly (no image decode). */
   async restoreOnActivation(): Promise<void> {
+    const epoch = this.generationEpoch;
     const saved = this.readPersisted();
     if (!saved) return;
+    if (!saved.appliedThemeLabel) {
+      saved.prevColorTheme = vscode.workspace.getConfiguration('workbench').inspect<string>('colorTheme')?.globalValue;
+      saved.appliedThemeLabel = `WallTheme ${saved.isDark ? 'Dark' : 'Light'}`;
+      saved.workbenchSnapshotCaptured = true;
+    }
+    this.activeSnapshot = saved;
+    if (saved.appliedThemeLabel && vscode.workspace.getConfiguration('workbench').get<string>('colorTheme') !== saved.appliedThemeLabel) {
+      await this.reset(false);
+      return;
+    }
     try {
-      await this.applyCustomizations(generateTheme({ colors: saved.colors, isDark: saved.isDark, syntaxStyle: saved.syntaxStyle }), saved);
+      this.application = this.applyCustomizations(generateTheme({ colors: saved.colors, isDark: saved.isDark, syntaxStyle: saved.syntaxStyle }), saved);
+      await this.application;
+      if (epoch !== this.generationEpoch) return;
+      fs.writeFileSync(this.stateFile, JSON.stringify(saved, null, 2));
       this.info = saved.info;
       this.setState('ready');
       Logger.info(`restored theme: ${saved.info.summary}`);
 
-      // If VS Code's theme kind flipped (e.g. auto day/night), follow it.
-      const cfg = vscode.workspace.getConfiguration('walltheme');
-      if (cfg.get<boolean | null>('isDark') === null) {
-        const sub = vscode.window.onDidChangeActiveColorTheme((theme) => {
-          void this.regenerateForCurrentKind(saved, theme.kind === vscode.ColorThemeKind.Dark);
-        });
-        this.ctx.subscriptions.push(sub);
-      }
       await this.startWatcher(saved.info.sourceKind, saved.info.source);
     } catch (err) {
       this.handleFailure('restore failed', err);
-    }
-  }
-
-  private async regenerateForCurrentKind(saved: PersistedState, wantDark: boolean): Promise<void> {
-    const setting = vscode.workspace.getConfiguration('walltheme').get<boolean | null>('isDark');
-    if (setting !== null) return;
-    if (wantDark === saved.isDark) return;
-    if (saved.info.sourceKind === 'seed') {
-      this.setState('working');
-      try {
-        await this.applySeed(argbFromHex(saved.info.seedHex.replace('#', '')), saved.info.seedHex, 'manual seed', 'seed');
-      } catch (err) {
-        this.handleFailure('regeneration failed', err);
-      }
-      return;
-    }
-    if (fs.existsSync(saved.info.source)) {
-      await this.generateFromPath(saved.info.source, saved.info.via);
     }
   }
 
@@ -289,6 +321,7 @@ export class ColorsGenerator implements vscode.Disposable {
   // -------------------------------------------------------------------------
 
   async generateFromPath(imagePath: string, via: string): Promise<void> {
+    const epoch = this.generationEpoch;
     this.setState('working');
     try {
       const source = expandHome(imagePath);
@@ -296,6 +329,7 @@ export class ColorsGenerator implements vscode.Disposable {
       Logger.info(`decoding ${source} (${(buf.length / 1024).toFixed(0)} KiB)…`);
 
       const img = await decodeImage(buf);
+      if (epoch !== this.generationEpoch) return;
       const pixels = extractPixels(img);
       Logger.info(`scoring ${pixels.length.toLocaleString()} sampled pixels…`);
 
@@ -304,8 +338,9 @@ export class ColorsGenerator implements vscode.Disposable {
       const seedHex = hexFromArgb(scored[0].argb).toUpperCase();
       Logger.info(`seed color: ${seedHex}`);
 
-      await this.applySeed(scored[0].argb, source, via, 'image', palette);
+      await this.applySeed(scored[0].argb, source, via, 'image', palette, epoch);
     } catch (err) {
+      if (epoch !== this.generationEpoch) return;
       this.handleFailure(`generation failed for ${imagePath}`, err);
     }
   }
@@ -316,6 +351,7 @@ export class ColorsGenerator implements vscode.Disposable {
     via: string,
     sourceKind: SourceKind,
     palette?: string[],
+    epoch = this.generationEpoch,
   ): Promise<void> {
     const cfg = vscode.workspace.getConfiguration('walltheme');
     const variant = (cfg.get<string>('style') ?? 'tonalSpot') as SchemeVariant;
@@ -375,9 +411,17 @@ export class ColorsGenerator implements vscode.Disposable {
       tokenSnapshotCaptured: previous !== undefined,
       prevTokenCustomizations: previous?.prevTokenCustomizations,
       prevSemanticCustomizations: previous?.prevSemanticCustomizations,
+      appliedThemeLabel: `WallTheme ${isDark ? 'Dark' : 'Light'}`,
+      prevColorTheme: previous ? previous.prevColorTheme : vscode.workspace.getConfiguration('workbench').inspect<string>('colorTheme')?.globalValue,
+      prevWorkbenchCustomizations: previous?.prevWorkbenchCustomizations,
+      workbenchSnapshotCaptured: previous !== undefined,
     };
 
-    await this.applyCustomizations(theme, persisted);
+    if (epoch !== this.generationEpoch) return;
+    this.activeSnapshot = persisted;
+    this.application = this.applyCustomizations(theme, persisted);
+    await this.application;
+    if (epoch !== this.generationEpoch) return;
     ensureDirSync(path.dirname(this.stateFile));
     fs.writeFileSync(this.stateFile, JSON.stringify(persisted, null, 2));
 
@@ -402,7 +446,14 @@ export class ColorsGenerator implements vscode.Disposable {
 
   private async applyCustomizations(theme: VsCodeTheme, persisted: PersistedState): Promise<void> {
     const wb = vscode.workspace.getConfiguration('workbench');
-    const wbCustom = { ...(wb.get<Record<string, unknown>>('colorCustomizations') ?? {}) };
+    if (!persisted.workbenchSnapshotCaptured) {
+      persisted.prevWorkbenchCustomizations = wb.inspect<Record<string, unknown>>('colorCustomizations')?.globalValue;
+      persisted.workbenchSnapshotCaptured = true;
+    }
+    if (persisted.appliedThemeLabel && wb.get<string>('colorTheme') !== persisted.appliedThemeLabel) {
+      await wb.update('colorTheme', persisted.appliedThemeLabel, vscode.ConfigurationTarget.Global);
+    }
+    const wbCustom = { ...(wb.inspect<Record<string, unknown>>('colorCustomizations')?.globalValue ?? {}) };
     for (const [key, value] of Object.entries(theme.colors)) wbCustom[key] = value;
     await wb.update('colorCustomizations', wbCustom, vscode.ConfigurationTarget.Global);
 
@@ -518,6 +569,7 @@ export class ColorsGenerator implements vscode.Disposable {
   }
 
   dispose(): void {
+    this.themeListener.dispose();
     this.stopWatcher();
     this.emitter.dispose();
   }

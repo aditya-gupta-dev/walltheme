@@ -167,7 +167,21 @@
           "group": "walltheme"
         }
       ]
-    }
+    },
+    "themes": [
+      {
+        "id": "walltheme-dark",
+        "label": "WallTheme Dark",
+        "uiTheme": "vs-dark",
+        "path": "./themes/walltheme-dark.json"
+      },
+      {
+        "id": "walltheme-light",
+        "label": "WallTheme Light",
+        "uiTheme": "vs",
+        "path": "./themes/walltheme-light.json"
+      }
+    ]
   },
   "scripts": {
     "compile": "node scripts/esbuild.mjs",

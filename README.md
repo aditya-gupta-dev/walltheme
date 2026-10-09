@@ -61,7 +61,9 @@ code --install-extension walltheme-0.1.0.vsix
 
 ## How the theming works
 
-The extension writes generated colors into `workbench.colorCustomizations` and `editor.tokenColorCustomizations` (global scope). This applies instantly and overrides the currently selected theme; your original theme is untouched and **Reset Theme** removes the overrides. The last theme is persisted and re-applied on startup.
+The extension selects **WallTheme Dark** or **WallTheme Light** and writes generated colors into `workbench.colorCustomizations` and `editor.tokenColorCustomizations` (global scope). This applies instantly. Choosing another theme with **Ctrl+K Ctrl+T** clears WallTheme overrides, restores your previous custom colors and syntax settings, and stops image auto-reload. **Reset Theme** also restores the theme selected before generation. Generated theme history remains available.
+
+The last generated theme is restored on startup only while its WallTheme entry remains selected.
 
 Generation also appends the complete theme to `generated-themes.json`. Previous entries survive new generations and Reset Theme. The latest saved theme is included when history is first created; themes overwritten before this feature cannot be recovered.
 
