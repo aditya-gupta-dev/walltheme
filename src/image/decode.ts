@@ -47,18 +47,13 @@ async function decodeBmp(buf: Buffer): Promise<DecodedImage> {
   const decoded = mod.decode(buf);
   const { width, height } = decoded;
   const out = Buffer.alloc(width * height * 4);
-  // bmp-js gives BGRA, bottom-up; normalize to RGBA top-down.
-  for (let y = 0; y < height; y++) {
-    const srcRow = (height - 1 - y) * width * 4;
-    const dstRow = y * width * 4;
-    for (let x = 0; x < width; x++) {
-      const s = srcRow + x * 4;
-      const d = dstRow + x * 4;
-      out[d] = decoded.data[s + 2];
-      out[d + 1] = decoded.data[s + 1];
-      out[d + 2] = decoded.data[s];
-      out[d + 3] = decoded.data[s + 3];
-    }
+  // bmp-js already orders rows top-down, but its bytes are ABGR.
+  // Its alpha byte is unused (zero) for ordinary BMPs.
+  for (let i = 0; i < out.length; i += 4) {
+    out[i] = decoded.data[i + 3];
+    out[i + 1] = decoded.data[i + 2];
+    out[i + 2] = decoded.data[i + 1];
+    out[i + 3] = 255;
   }
   return { width, height, data: out };
 }
@@ -69,19 +64,29 @@ async function decodeGif(buf: Buffer): Promise<DecodedImage> {
   const frames = decompressFrames(gif, true);
   if (frames.length === 0) throw new Error('GIF has no frames');
   const { width, height } = gif.lsd;
-  const patch = frames[0].patch; // RGBA of first frame
-  return { width, height, data: Buffer.from(patch) };
+  const frame = frames[0];
+  const data = Buffer.alloc(width * height * 4);
+  for (let y = 0; y < frame.dims.height; y++) {
+    const targetY = frame.dims.top + y;
+    if (targetY >= height) break;
+    const count = Math.min(frame.dims.width, width - frame.dims.left);
+    if (count <= 0) continue;
+    Buffer.from(frame.patch.buffer, frame.patch.byteOffset + y * frame.dims.width * 4, count * 4)
+      .copy(data, (targetY * width + frame.dims.left) * 4);
+  }
+  return { width, height, data };
 }
 
 async function decodeTiff(buf: Buffer): Promise<DecodedImage> {
-  const UTIF = (await import('utif')) as unknown as {
+  const imported = await import('utif');
+  const UTIF = ((imported as unknown as { default?: unknown }).default ?? imported) as {
     decode: (b: Buffer) => { width: number; height: number }[];
-    decodeImage: (b: Buffer, ifds: unknown[]) => void;
+    decodeImage: (b: Buffer, ifd: unknown, ifds: unknown[]) => void;
     toRGBA8: (ifd: unknown) => Uint8Array;
   };
   const ifds = UTIF.decode(buf);
   if (ifds.length === 0) throw new Error('TIFF has no IFDs');
-  UTIF.decodeImage(buf, ifds);
+  UTIF.decodeImage(buf, ifds[0], ifds);
   const rgba = UTIF.toRGBA8(ifds[0]);
   return { width: ifds[0].width, height: ifds[0].height, data: Buffer.from(rgba) };
 }
@@ -112,7 +117,7 @@ async function decodeWithSharp(buf: Buffer): Promise<DecodedImage> {
   return new Promise((resolve, reject) => {
     // Electron's linked GLib also conflicts with libvips in run-as-node mode.
     // Use standalone Node for optional formats; ordinary PNG/JPEG need no runtime.
-    const executable = process.versions.electron ? 'node' : process.execPath;
+    const executable = process.versions.electron || process.versions.bun ? 'node' : process.execPath;
     const child = execFile(executable, ['-e', script, sharpPath], {
       env: process.env,
       encoding: 'buffer',
@@ -122,7 +127,7 @@ async function decodeWithSharp(buf: Buffer): Promise<DecodedImage> {
     }, (error, stdout, stderr) => {
       if (error) {
         if (error.code === 'ENOENT') {
-          reject(new Error('WebP/AVIF decoding needs Node.js on PATH. Install Node.js or choose a PNG/JPEG image.'));
+          reject(new Error('WebP/AVIF decoding needs Node.js 20.9 or newer on PATH. Install Node.js or choose a PNG/JPEG image.'));
           return;
         }
         reject(new Error(`Image decoder failed (${error.signal ?? error.code ?? 'unknown'}): ${stderr.toString().trim() || error.message}`));

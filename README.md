@@ -1,6 +1,8 @@
 # WallTheme — Material You for VS Code
 
-Generate a complete VS Code color theme from **any image**, the same way [matugen](https://github.com/InioX/matugen) does it:
+<img src="assets/icon.png" width="128" height="128" alt="WallTheme cat holding a paintbrush">
+
+Generate a complete VS Code color theme from **an image**, the same way [matugen](https://github.com/InioX/matugen) does it:
 
 ```
 image → Celebi quantization → HCT seed scoring → Material tonal palettes → full VS Code theme
@@ -14,16 +16,16 @@ Powered by Google's official [`@material/material-color-utilities`](https://gith
 - **Theme dropdown** — click WallTheme in the status bar to choose an image or manage your theme
 - **Standalone themes** — UI and code colors live in generated theme JSON; settings only select the theme name
 - **Code colors** — the same image palette colors keywords, variables, parameters, functions, types, strings, numbers, and comments through TextMate and semantic token rules; both follow `walltheme.syntaxStyle`
-- **Full M3 schemes** — tonalSpot, vibrant, expressive, content, fidelity, rainbow, fruitSalad, neutral, monochrome, contrast (same set matugen exposes)
+- **Material schemes** — tonalSpot, vibrant, expressive, content, fidelity, rainbow, fruitSalad, and contrast
 - **Auto reload** — watches your chosen image and regenerates when it changes
 - **Dark/light aware** — follows VS Code's theme kind, or force either
 - **Export** — write a standalone `*.json` theme you can share or package
 - **JSON history** — every generated theme is saved in `walltheme-generated/generated-themes.json` under the extension's global storage, including extracted hex colors, Material roles, UI colors, and syntax rules
-- **Reset** — one command restores your previous settings
+- **Reset** — one command restores your previous theme selection
 
 ## Usage
 
-1. Open the folder in VS Code and press **F5** (Run Extension). An *Extension Development Host* window opens with WallTheme loaded.
+1. Install **WallTheme** from the Extensions view or use **Install from VSIX…**.
 2. Press `Ctrl+Shift+P` / `Cmd+Shift+P` and type `WallTheme`:
 
 Choose **WallTheme: Generate Theme from Image…**, then select your image. WallTheme extracts colors and writes a complete UI and syntax theme. In an installed extension, select **Reload Window** when prompted to load updated colors. No matugen installation needed.
@@ -84,17 +86,18 @@ Run **WallTheme: Open Generated Theme Files…** to view the exact active file o
 ## Development
 
 ```bash
-bun install        # deps
+bun install        # deps; development tooling requires Node.js 22+
 bun run typecheck  # tsc --noEmit
 bun test           # pipeline tests (bun:test)
 bun run compile    # esbuild → dist/extension.js
 bun run watch      # incremental rebuild
-bun run gen:icon   # regenerate assets/icon.png
 ```
 
 ## Notes
 
-- WebP/AVIF decoding requires the optional `sharp` dependency (installed by default) and standalone Node.js on PATH. PNG/JPEG/GIF/BMP/TIFF work without either.
+- PNG, JPEG, GIF, BMP, and TIFF work without additional software. WebP/AVIF and additional native formats require standalone **Node.js 20.9+** on PATH. The VSIX includes optional native decoders for their supported Windows, macOS, and Linux architectures.
+- This extension runs in desktop VS Code, including local UI windows connected to remote workspaces. Browser-only VS Code is not supported.
+- Images and palettes stay local. WallTheme makes no network requests and collects no telemetry.
 - PNG/JPEG resizing uses JavaScript. Optional native decoders run in a separate process, so decoder failures cannot close the extension host.
 
 ### Debugging
@@ -102,6 +105,10 @@ bun run gen:icon   # regenerate assets/icon.png
 Press **F5**, then run **WallTheme: Generate Theme from Image…** in the **Extension Development Host** window. The generated theme applies to that window. The development launch disables other installed extensions to keep their background work out of the debug session.
 
 If generation fails, select **Show Logs** in the error notification or open **View → Output → WallTheme** for the failure details.
+
+## Publishing
+
+See [PUBLISHING.md](PUBLISHING.md) for publisher setup, release checks, packaging, and uploading to Marketplace.
 
 ## License
 

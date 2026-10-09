@@ -1,13 +1,13 @@
 {
   "name": "walltheme",
   "displayName": "WallTheme",
-  "description": "Material You for VS Code \u2014 generate a complete color theme from any image, matugen-style.",
+  "description": "Generate Material You themes from images, including editor UI and code colors.",
   "version": "0.1.0",
   "publisher": "walltheme",
   "license": "MIT",
   "icon": "assets/icon.png",
   "galleryBanner": {
-    "color": "#16130f",
+    "color": "#0b1224",
     "theme": "dark"
   },
   "keywords": [
@@ -191,11 +191,12 @@
     "watch": "node scripts/esbuild.mjs --watch",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "gen:icon": "bun run scripts/make-icon.mjs",
     "pretest": "bun run typecheck && bun run compile",
-    "vscode:prepublish": "node scripts/esbuild.mjs --production --reset-themes",
-    "package": "vsce package",
-    "clean": "rm -rf dist *.vsix"
+    "vscode:prepublish": "bun run check && node scripts/esbuild.mjs --production --reset-themes",
+    "package": "bun install --frozen-lockfile --os \"*\" --cpu \"*\" && vsce package && node scripts/verify-package.mjs",
+    "clean": "rm -rf dist *.vsix",
+    "check": "bun run typecheck && bun test",
+    "publish": "node scripts/publish.mjs"
   },
   "dependencies": {
     "@material/material-color-utilities": "0.4.0",
@@ -206,16 +207,17 @@
     "utif": "^3.1.0"
   },
   "optionalDependencies": {
-    "sharp": "^0.33.5"
+    "sharp": "0.35.5"
   },
   "devDependencies": {
     "@types/bun": "^1.1.10",
     "@types/node": "^22.10.0",
     "@types/pngjs": "^6.0.5",
-    "@types/vscode": "^1.84.0",
-    "@vscode/vsce": "^3.2.0",
-    "esbuild": "^0.24.0",
-    "typescript": "^5.7.0"
+    "@types/vscode": "1.84.0",
+    "@vscode/vsce": "4.0.0",
+    "esbuild": "0.28.2",
+    "typescript": "^5.7.0",
+    "yauzl": "3.4.0"
   },
   "extensionKind": [
     "ui",
@@ -228,10 +230,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/walltheme/walltheme"
+    "url": "https://github.com/aditya-gupta-dev/walltheme.git"
   },
-  "homepage": "https://github.com/walltheme/walltheme#readme",
+  "homepage": "https://github.com/aditya-gupta-dev/walltheme#readme",
   "bugs": {
-    "url": "https://github.com/walltheme/walltheme/issues"
-  }
+    "url": "https://github.com/aditya-gupta-dev/walltheme/issues"
+  },
+  "pricing": "Free"
 }

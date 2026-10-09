@@ -14,6 +14,7 @@ declare module 'utif' {
     [key: string]: unknown;
   }
   export function decode(buffer: Buffer): IFD[];
-  export function decodeImage(buffer: Buffer, ifds: IFD[]): void;
+  export function decodeImage(buffer: Buffer, ifd: IFD, ifds?: IFD[]): void;
+  export function encodeImage(rgba: Uint8Array, width: number, height: number): ArrayBuffer;
   export function toRGBA8(ifd: IFD): Uint8Array;
 }

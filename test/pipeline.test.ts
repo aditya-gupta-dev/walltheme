@@ -61,6 +61,55 @@ describe('image format detection', () => {
 });
 
 describe('decode + extraction', () => {
+  test('decodes BMP channels and row order as opaque RGBA', async () => {
+    const bmp = Buffer.alloc(70);
+    bmp.write('BM');
+    bmp.writeUInt32LE(70, 2);
+    bmp.writeUInt32LE(54, 10);
+    bmp.writeUInt32LE(40, 14);
+    bmp.writeInt32LE(2, 18);
+    bmp.writeInt32LE(2, 22);
+    bmp.writeUInt16LE(1, 26);
+    bmp.writeUInt16LE(24, 28);
+    Buffer.from([255, 0, 0, 0, 255, 255, 0, 0, 0, 0, 255, 0, 255, 0, 0, 0]).copy(bmp, 54);
+    const image = await decodeImage(bmp);
+    expect([...image.data]).toEqual([255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 0, 255]);
+    expect(extractPixels(image)).toHaveLength(4);
+  });
+
+  test('decodes TIFF pixels through the first IFD', async () => {
+    const imported = await import('utif');
+    const utif = ((imported as unknown as { default?: typeof imported }).default ?? imported);
+    const rgba = new Uint8Array([26, 94, 99, 255, 216, 132, 43, 255]);
+    const image = await decodeImage(Buffer.from(utif.encodeImage(rgba, 2, 1)));
+    expect(image.width).toBe(2);
+    expect(image.height).toBe(1);
+    expect([...image.data]).toEqual([...rgba]);
+  });
+
+  test('places an offset GIF frame into its logical canvas', async () => {
+    const gif = Buffer.from('R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==', 'base64');
+    gif.writeUInt16LE(3, 6);
+    gif.writeUInt16LE(3, 8);
+    const descriptor = gif.indexOf(0x2c);
+    gif.writeUInt16LE(1, descriptor + 1);
+    gif.writeUInt16LE(1, descriptor + 3);
+    const image = await decodeImage(gif);
+    expect(image.data.length).toBe(3 * 3 * 4);
+    expect(image.data[4 * 4 + 3]).toBe(255);
+    expect(image.data[3]).toBe(0);
+    expect(extractPixels(image)).toHaveLength(1);
+  });
+
+  test('decodes WebP through the isolated native decoder', async () => {
+    const webp = Buffer.from('UklGRjQAAABXRUJQVlA4ICgAAACQAQCdASoIAAgAAUAmJaACdLoAA5gA/vPfZrQtCBz/5Bjt57ed2AAA', 'base64');
+    const image = await decodeImage(webp);
+    expect(image.width).toBe(8);
+    expect(image.height).toBe(8);
+    expect(image.data.length).toBe(8 * 8 * 4);
+    expect(extractPixels(image).length).toBeGreaterThan(0);
+  });
+
   test('decodes and downsizes a large PNG without native resizing', async () => {
     const png = new PNG({ width: 2001, height: 1301 });
     for (let i = 0; i < png.data.length; i += 4) {
