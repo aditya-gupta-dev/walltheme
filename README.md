@@ -77,8 +77,8 @@ VS Code watches theme files live in an Extension Development Host. Installed ext
 
 ### Generated file locations
 
-- **Active files:** `<WallTheme extension directory>/dist/themes/walltheme-dark.json` and `walltheme-light.json`. When running F5 from this project, these are under the project's `dist/themes/`. A normal installation puts them under `~/.vscode/extensions/walltheme.walltheme-<version>/dist/themes/`.
-- **Backups and history:** `<VS Code global storage>/walltheme.walltheme/walltheme-generated/`, containing the latest `walltheme-dark.json` / `walltheme-light.json` and `generated-themes.json` history. On standard Linux VS Code, this is `~/.config/Code/User/globalStorage/walltheme.walltheme/walltheme-generated/`. Custom profiles and other operating systems use their respective VS Code storage locations.
+- **Active files:** `<WallTheme extension directory>/dist/themes/walltheme-dark.json` and `walltheme-light.json`. When running F5 from this project, these are under the project's `dist/themes/`. A normal installation puts them under `~/.vscode/extensions/aditya-gupta-dev.walltheme-<version>/dist/themes/`.
+- **Backups and history:** `<VS Code global storage>/aditya-gupta-dev.walltheme/walltheme-generated/`, containing the latest `walltheme-dark.json` / `walltheme-light.json` and `generated-themes.json` history. On standard Linux VS Code, this is `~/.config/Code/User/globalStorage/aditya-gupta-dev.walltheme/walltheme-generated/`. Custom profiles and other operating systems use their respective VS Code storage locations.
 - **State:** `state.json` next to the backup directory records the palette, source image, and previous theme selection.
 
 Run **WallTheme: Open Generated Theme Files…** to view the exact active file or history path for your installation. Backups/history survive theme switching and Reset Theme. Extension updates may replace active files; saved state restores an active generated theme from its palette on startup. Previously overwritten themes from before history was introduced cannot be recovered.

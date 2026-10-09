@@ -7,7 +7,7 @@ import * as vscode from 'vscode';
 import { PNG } from 'pngjs';
 
 export async function run(): Promise<void> {
-  const extension = vscode.extensions.getExtension('walltheme.walltheme');
+  const extension = vscode.extensions.getExtension('aditya-gupta-dev.walltheme');
   assert.ok(extension, 'WallTheme must be discovered');
   for (const theme of extension.packageJSON.contributes.themes) {
     assert.equal(theme.id ?? theme.label, theme.label, 'Settings must resolve WallTheme by its displayed name');
@@ -52,7 +52,7 @@ export async function run(): Promise<void> {
   for (const image of images) {
     await vscode.commands.executeCommand('walltheme.generateFromImage', vscode.Uri.file(image));
     assert.deepEqual(vscode.workspace.getConfiguration('workbench').inspect('colorCustomizations')?.globalValue, previousWorkbench);
-    const storage = path.join(process.env.WALLTHEME_TEST_USER_DATA!, 'User/globalStorage/walltheme.walltheme');
+    const storage = path.join(process.env.WALLTHEME_TEST_USER_DATA!, 'User/globalStorage/aditya-gupta-dev.walltheme');
     const state = JSON.parse(fs.readFileSync(path.join(storage, 'state.json'), 'utf8'));
     assert.equal(state.info.source, image, 'New image must finish generation, not leave old theme');
     assert.equal(state.version, 2);
@@ -76,7 +76,7 @@ export async function run(): Promise<void> {
 
   await vscode.workspace.getConfiguration('walltheme').update('autoReload', true, vscode.ConfigurationTarget.Global);
   await vscode.workspace.getConfiguration('walltheme').update('watchIntervalMs', 1000, vscode.ConfigurationTarget.Global);
-  const storage = path.join(process.env.WALLTHEME_TEST_USER_DATA!, 'User/globalStorage/walltheme.walltheme');
+  const storage = path.join(process.env.WALLTHEME_TEST_USER_DATA!, 'User/globalStorage/aditya-gupta-dev.walltheme');
   for (const selected of ['Default Dark Modern', 'Default Light Modern']) {
     await vscode.commands.executeCommand('walltheme.generateFromImage', vscode.Uri.file(images[0]));
     assert.match(vscode.workspace.getConfiguration('workbench').get<string>('colorTheme') ?? '', /^WallTheme (Dark|Light)$/);

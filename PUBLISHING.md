@@ -4,7 +4,7 @@
 
 1. Sign in with a Microsoft account at https://marketplace.visualstudio.com/manage/publishers/.
 2. Create a publisher. Its ID is the account identifier that owns your extension, separate from your GitHub username.
-3. Set `publisher` in `package.json` to that exact ID. The current value, `walltheme`, is provisional until you confirm you own it. Choose this before the first public release: it determines the extension ID and user storage location.
+3. The configured publisher ID is `aditya-gupta-dev`; `package.json` uses this ID. The extension ID is `aditya-gupta-dev.walltheme`, which also determines its user storage location.
 
 You do not need a paid Azure subscription, verified domain, or a token for manual VSIX uploads.
 
@@ -35,6 +35,6 @@ Generate from PNG/JPEG, check light/dark modes, reload when prompted, open gener
 
 On your publisher management page, choose **New extension → Visual Studio Code**, upload the VSIX, and follow validation prompts. For later releases, increase the version in `package.json`, update `CHANGELOG.md`, rebuild, and upload the new VSIX to the existing extension.
 
-CLI publishing is optional. Build with `bun run package` first, then authenticate with `bunx vsce login <publisher-id>` and run `bun run publish`. Do not put tokens in the repository or share them in chat. Microsoft recommends Entra ID authentication for automated publishing; global Azure DevOps PATs retire on December 1, 2026.
+CLI publishing is optional. Build with `bun run package` first, then authenticate with `bunx vsce login aditya-gupta-dev` and run `bun run publish`. Do not put tokens in the repository or share them in chat. Microsoft recommends Entra ID authentication for automated publishing; global Azure DevOps PATs retire on December 1, 2026.
 
 Official publishing guide: https://code.visualstudio.com/api/working-with-extensions/publishing-extension.

@@ -3,7 +3,7 @@
   "displayName": "WallTheme",
   "description": "Generate Material You themes from images, including editor UI and code colors.",
   "version": "0.1.0",
-  "publisher": "walltheme",
+  "publisher": "aditya-gupta-dev",
   "license": "MIT",
   "icon": "assets/icon.png",
   "galleryBanner": {
