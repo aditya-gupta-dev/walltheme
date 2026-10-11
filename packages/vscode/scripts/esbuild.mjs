@@ -1,5 +1,14 @@
 import * as esbuild from 'esbuild';
 import * as fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const repositoryRoot = path.resolve(packageRoot, '../..');
+process.chdir(packageRoot);
+for (const name of ['LICENSE', 'CHANGELOG.md', 'SUPPORT.md']) {
+  fs.copyFileSync(path.join(repositoryRoot, name), path.join(packageRoot, name));
+}
 
 fs.mkdirSync('dist/themes', { recursive: true });
 for (const mode of ['dark', 'light']) {

@@ -1,115 +1,82 @@
-# WallTheme — Material You for VS Code
+# WallTheme
 
-<img src="assets/icon.png" width="128" height="128" alt="WallTheme cat holding a paintbrush">
+<img src="packages/vscode/assets/icon.png" width="128" height="128" alt="WallTheme cat holding a paintbrush">
 
-Generate a complete VS Code color theme from **an image**, the same way [matugen](https://github.com/InioX/matugen) does it:
+Generate Material You themes from images. WallTheme separates the shared color engine from editor-specific integrations:
 
-```
-image → Celebi quantization → HCT seed scoring → Material tonal palettes → full VS Code theme
-```
+- **VS Code:** image selection, palette generation, UI and code themes, export, and saved theme history. See the [VS Code guide](packages/vscode/README.md).
+- **Zed:** an initial extension that prints `Hi` to its launching terminal when it loads. Theme generation for Zed is not implemented yet. See the [Zed guide](packages/zed/README.md).
 
-Powered by Google's official [`@material/material-color-utilities`](https://github.com/material-foundation/material-color-utilities) — the exact library matugen ports its algorithms from.
+## Repository structure
 
-## Features
+```text
+packages/
+  core/             Shared TypeScript image, palette, and syntax-role engine
+  vscode/           VS Code extension, UI, theme mapping, assets, and build scripts
+  zed/              Rust/Wasm Zed extension
 
-- **Generate Theme from Image** — pick any image, extract a Material palette, and apply the generated theme
-- **Theme dropdown** — click WallTheme in the status bar to choose an image or manage your theme
-- **Standalone themes** — UI and code colors live in generated theme JSON; settings only select the theme name
-- **Code colors** — the same image palette colors keywords, variables, parameters, functions, types, strings, numbers, and comments through TextMate and semantic token rules; both follow `walltheme.syntaxStyle`
-- **Material schemes** — tonalSpot, vibrant, expressive, content, fidelity, rainbow, fruitSalad, and contrast
-- **Auto reload** — watches your chosen image and regenerates when it changes
-- **Dark/light aware** — follows VS Code's theme kind, or force either
-- **Export** — write a standalone `*.json` theme you can share or package
-- **JSON history** — every generated theme is saved in `walltheme-generated/generated-themes.json` under the extension's global storage, including extracted hex colors, Material roles, UI colors, and syntax rules
-- **Reset** — one command restores your previous theme selection
+tests/
+  core/             Shared engine tests
+  vscode/           VS Code theme mapping and extension-host tests
 
-## Usage
-
-1. Install **WallTheme** from the Extensions view or use **Install from VSIX…**.
-2. Press `Ctrl+Shift+P` / `Cmd+Shift+P` and type `WallTheme`:
-
-Choose **WallTheme: Generate Theme from Image…**, then select your image. WallTheme extracts colors and writes a complete UI and syntax theme. In an installed extension, select **Reload Window** when prompted to load updated colors. No matugen installation needed.
-
-| Command | What it does |
-| --- | --- |
-| **WallTheme: Generate Theme from Image…** | Pick an image, extract its palette, and apply the theme |
-| **WallTheme: Open Theme Menu…** | Open the WallTheme actions dropdown |
-| **WallTheme: Reload Theme…** | Open an image picker → extract colors → apply |
-| **WallTheme: Choose Source Color…** | Seed the palette from a hex color |
-| **WallTheme: Preview Palette** | Ranked extracted colors; click to copy or re-seed |
-| **WallTheme: Export Theme as JSON…** | Save a shareable standalone theme file |
-| **WallTheme: Open Generated Theme Files…** | View active JSON files or history with exact paths |
-| **WallTheme: Reset Theme** | Restore the previous theme selection |
-
-There's also a `$(paintcan) WallTheme` status bar item — click it to open the actions dropdown, then select **Generate Theme from Image…**.
-
-### Installing permanently (VSIX)
-
-```bash
-bun install
-bun run package          # produces walltheme-0.1.0.vsix
-code --install-extension walltheme-0.1.0.vsix
+.vscode/            VS Code development launch and build tasks
+.github/workflows/  Continuous integration
 ```
 
-## Settings
+`packages/core` handles image decoding, Material color extraction, scheme generation, and readable syntax colors. It has no VS Code API dependency. Editor packages own their theme formats, commands, settings, and file locations.
 
-| Setting | Default | Description |
-| --- | --- | --- |
-| `walltheme.style` | `tonalSpot` | M3 scheme variant |
-| `walltheme.isDark` | `null` | Force dark/light, or follow VS Code |
-| `walltheme.contrastLevel` | `0` | −1 … 1 contrast adjustment |
-| `walltheme.intensity` | `1` | Chroma scaling for accents (0.1–1.5) |
-| `walltheme.syntaxStyle` | `material` | Token mapping: `material`, `rainbow`, `monochrome`, `vibrant` |
-| `walltheme.autoReload` | `true` | Regenerate when the chosen image changes |
-| `walltheme.watchIntervalMs` | `5000` | Chosen-image poll interval |
-
-## How the theming works
-
-The extension writes a complete theme JSON containing UI colors, TextMate syntax rules, and semantic token colors. It registers the files as **WallTheme Dark** and **WallTheme Light**; the only theme application setting it changes is:
-
-```json
-{ "workbench.colorTheme": "WallTheme Dark" }
-```
-
-Choosing another theme with **Ctrl+K Ctrl+T** works normally and stops image watching. **Reset Theme** restores your previous selection. Existing user color customizations remain untouched and retain their normal VS Code precedence. On upgrade from older WallTheme versions, the previous generated settings overrides are removed once using saved originals.
-
-VS Code watches theme files live in an Extension Development Host. Installed extensions show **Reload Window** after changing a theme file so cached colors are reliably refreshed. No automatic window reload occurs.
-
-### Generated file locations
-
-- **Active files:** `<WallTheme extension directory>/dist/themes/walltheme-dark.json` and `walltheme-light.json`. When running F5 from this project, these are under the project's `dist/themes/`. A normal installation puts them under `~/.vscode/extensions/aditya-gupta-dev.walltheme-<version>/dist/themes/`.
-- **Backups and history:** `<VS Code global storage>/aditya-gupta-dev.walltheme/walltheme-generated/`, containing the latest `walltheme-dark.json` / `walltheme-light.json` and `generated-themes.json` history. On standard Linux VS Code, this is `~/.config/Code/User/globalStorage/aditya-gupta-dev.walltheme/walltheme-generated/`. Custom profiles and other operating systems use their respective VS Code storage locations.
-- **State:** `state.json` next to the backup directory records the palette, source image, and previous theme selection.
-
-Run **WallTheme: Open Generated Theme Files…** to view the exact active file or history path for your installation. Backups/history survive theme switching and Reset Theme. Extension updates may replace active files; saved state restores an active generated theme from its palette on startup. Previously overwritten themes from before history was introduced cannot be recovered.
+The VS Code package bundles the shared TypeScript engine. Zed extensions run as Rust/Wasm; the greeting extension does not load TypeScript. Future Zed theme generation can consume output from the shared engine through a separate generation tool, keeping editor-specific field mappings in the Zed integration.
 
 ## Development
 
+Install Node.js 22+ and Bun 1.4+, then run commands from the repository root:
+
 ```bash
-bun install        # deps; development tooling requires Node.js 22+
-bun run typecheck  # tsc --noEmit
-bun test           # pipeline tests (bun:test)
-bun run compile    # esbuild → dist/extension.js
-bun run watch      # incremental rebuild
+bun install
+bun run typecheck
+bun run test
+bun run compile
+bun run watch
 ```
 
-## Notes
+Root commands coordinate the private Bun workspace. `compile` and `watch` build the VS Code extension into `packages/vscode/dist/`; `typecheck` and `test` cover the TypeScript engine and VS Code integration. `bun run check` runs both checks. Rust development commands are documented separately in the [Zed guide](packages/zed/README.md).
 
-- Supported formats: **PNG, JPEG, GIF, BMP, and TIFF**. WebP/AVIF are not supported; convert them to PNG/JPEG first. No standalone Node.js or native decoder installation is needed.
-- This extension runs in desktop VS Code, including local UI windows connected to remote workspaces. Browser-only VS Code is not supported.
-- Images and palettes stay local. WallTheme makes no network requests and collects no telemetry.
-- Image decoding and resizing use bundled JavaScript. The VSIX contains no native decoder binaries or `node_modules` directory.
+For VS Code, open this repository and press **F5**. The development host loads `packages/vscode` as the extension. Run **WallTheme: Generate Theme from Image…** there to test.
 
-### Debugging
+For Zed, follow the manual installation steps below. Build commands do not launch either editor.
 
-Press **F5**, then run **WallTheme: Generate Theme from Image…** in the **Extension Development Host** window. The generated theme applies to that window. The development launch disables other installed extensions to keep their background work out of the debug session.
+## VS Code package
 
-If generation fails, select **Show Logs** in the error notification or open **View → Output → WallTheme** for the failure details.
+```bash
+bun run package
+code --install-extension packages/vscode/walltheme-0.1.0.vsix
+```
 
-## Publishing
+The VSIX contains the compiled extension and shared engine, with no native image decoders or `node_modules` directory. Supported image formats are PNG, JPEG, GIF, BMP, and TIFF. WebP and AVIF are unsupported.
 
-See [PUBLISHING.md](PUBLISHING.md) for publisher setup, release checks, packaging, and uploading to Marketplace.
+Generated active themes live in `<WallTheme extension directory>/dist/themes/`. During F5 development, that is `packages/vscode/dist/themes/`. Backups and hex-color history remain in the VS Code global storage directory under `aditya-gupta-dev.walltheme/walltheme-generated/`. Run **WallTheme: Open Generated Theme Files…** to find exact paths.
+
+See [PUBLISHING.md](PUBLISHING.md) for Marketplace release steps. The publisher remains `aditya-gupta-dev` and the extension ID remains `aditya-gupta-dev.walltheme`.
+
+## Zed extension
+
+The initial Zed package prints `Hi` in the terminal running Zed with `--foreground` when it loads. Zed's public extension API does not provide general-purpose notification popups, so the greeting uses extension stdout.
+
+With Rust installed through rustup:
+
+```bash
+rustup target add wasm32-wasip2
+bun run compile:zed
+```
+
+Quit existing Zed windows, then run `zed --foreground .` yourself from the repository root:
+
+1. Open the command palette and run **zed: install dev extension**.
+2. Select this repository's `packages/zed` directory.
+3. Find `Hi` in the launching terminal after the extension loads.
+
+See the [Zed guide](packages/zed/README.md) for prerequisites and development details.
 
 ## License
 
-MIT
+MIT. Shared license and release notes live at the repository root.

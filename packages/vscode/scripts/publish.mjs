@@ -6,6 +6,6 @@ const build = spawnSync('bun', ['run', 'package'], { stdio: 'inherit', shell: pr
 if (build.status !== 0) process.exit(build.status ?? 1);
 const manifest = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const vsix = path.resolve(`${manifest.name}-${manifest.version}.vsix`);
-const publish = spawnSync(process.execPath, ['node_modules/@vscode/vsce/vsce', 'publish', '--packagePath', vsix], { stdio: 'inherit' });
+const publish = spawnSync(process.execPath, [path.resolve('../../node_modules/@vscode/vsce/vsce'), 'publish', '--packagePath', vsix], { stdio: 'inherit' });
 if (publish.error) console.error(publish.error.message);
 process.exit(publish.status ?? 1);

@@ -2,47 +2,9 @@
  * Full VS Code theme generator: maps an M3 scheme onto every VS Code
  * color token we care about, then emits standard VS Code theme JSON.
  */
-import { TOKEN_PALETTES } from './tokens';
-import { argbFromHex, Contrast, Hct, hexFromArgb } from './mcu';
+import { generateSyntaxColors, type ThemeColors } from '@walltheme/core';
 
-export interface ThemeColors {
-  primary: string;
-  onPrimary: string;
-  primaryContainer: string;
-  onPrimaryContainer: string;
-  secondary: string;
-  onSecondary: string;
-  secondaryContainer: string;
-  onSecondaryContainer: string;
-  tertiary: string;
-  onTertiary: string;
-  tertiaryContainer: string;
-  onTertiaryContainer: string;
-  error: string;
-  onError: string;
-  errorContainer: string;
-  onErrorContainer: string;
-  background: string;
-  onBackground: string;
-  surface: string;
-  onSurface: string;
-  surfaceVariant: string;
-  onSurfaceVariant: string;
-  outline: string;
-  outlineVariant: string;
-  shadow: string;
-  scrim: string;
-  inverseSurface: string;
-  inverseOnSurface: string;
-  inversePrimary: string;
-  surfaceDim: string;
-  surfaceBright: string;
-  surfaceContainerLowest: string;
-  surfaceContainerLow: string;
-  surfaceContainer: string;
-  surfaceContainerHigh: string;
-  surfaceContainerHighest: string;
-}
+export type { ThemeColors } from '@walltheme/core';
 
 export interface GenerateThemeOptions {
   colors: ThemeColors;
@@ -506,19 +468,7 @@ const SEMANTIC_KINDS: Record<string, string> = {
 
 export function generateTheme(opts: GenerateThemeOptions): WriteableTheme {
   const { colors: c, isDark, syntaxStyle } = opts;
-  const palette = TOKEN_PALETTES[syntaxStyle] ?? TOKEN_PALETTES['material'];
-  const backgroundTone = Hct.fromInt(argbFromHex(c.surface)).tone;
-  const codeColor = (kind: string): string => {
-    const color = c[palette[kind]];
-    const hct = Hct.fromInt(argbFromHex(color));
-    const minimum = kind === 'comment' ? 3 : 4.5;
-    if (Contrast.ratioOfTones(hct.tone, backgroundTone) >= minimum) return color;
-    // Retain palette hue/chroma while moving text away from the editor background.
-    const tone = backgroundTone < 50
-      ? Contrast.lighterUnsafe(backgroundTone, minimum + 0.1)
-      : Contrast.darkerUnsafe(backgroundTone, minimum + 0.1);
-    return hexFromArgb(Hct.from(hct.hue, hct.chroma, tone).toInt()).toUpperCase();
-  };
+  const syntax = generateSyntaxColors(c, syntaxStyle);
 
   const kindIsDark = isDark;
   const theme: WriteableTheme = {
@@ -530,10 +480,10 @@ export function generateTheme(opts: GenerateThemeOptions): WriteableTheme {
     semanticTokenColors: {},
   };
 
-  for (const kind of Object.keys(palette)) {
+  for (const kind of Object.keys(syntax)) {
     const scopes = tokenScope(kind);
     if (scopes.length === 0) continue;
-    theme.tokenColors.push({ scope: scopes, settings: { foreground: codeColor(kind) } });
+    theme.tokenColors.push({ scope: scopes, settings: { foreground: syntax[kind] } });
   }
 
   // Base text fallback.
@@ -543,7 +493,7 @@ export function generateTheme(opts: GenerateThemeOptions): WriteableTheme {
   });
 
   for (const [semantic, kind] of Object.entries(SEMANTIC_KINDS)) {
-    theme.semanticTokenColors[semantic] = codeColor(kind);
+    theme.semanticTokenColors[semantic] = syntax[kind];
   }
 
   return theme;

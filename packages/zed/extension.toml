@@ -1,0 +1,10 @@
+id = "walltheme"
+name = "WallTheme"
+version = "0.1.0"
+schema_version = 1
+authors = ["Aditya Gupta"]
+description = "WallTheme development scaffold. Prints Hi when loaded."
+repository = "https://github.com/aditya-gupta-dev/walltheme"
+
+[lib]
+kind = "Rust"

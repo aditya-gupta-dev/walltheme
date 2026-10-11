@@ -14,19 +14,18 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 
 import {
+  applyIntensity,
   argbFromHex,
   buildScheme,
-  Hct,
   hexFromArgb,
   quantizeAndScore,
   schemeToHexMap,
-  TonalPalette,
-} from './theme/mcu';
-import type { SchemeVariant } from './theme/mcu';
+} from '@walltheme/core';
+import type { SchemeVariant } from '@walltheme/core';
 import { generateTheme } from './theme/vscode-theme';
 import { archiveTheme } from './theme/history';
 import type { ThemeColors, VsCodeTheme } from './theme/vscode-theme';
-import { decodeImage, extractPixels } from './image/decode';
+import { decodeImage, extractPixels } from '@walltheme/core';
 import { ensureDirSync, expandHome } from './util/fs';
 import { Logger } from './util/log';
 
@@ -62,21 +61,6 @@ interface PersistedState {
 }
 
 const THEME_DIR = 'walltheme-generated';
-const ACCENT_ROLES: readonly (keyof ThemeColors)[] = [
-  'primary', 'onPrimary', 'primaryContainer', 'onPrimaryContainer',
-  'secondary', 'onSecondary', 'secondaryContainer', 'onSecondaryContainer',
-  'tertiary', 'onTertiary', 'tertiaryContainer', 'onTertiaryContainer',
-  'inversePrimary',
-];
-
-/** Rebuild a color with scaled chroma (same hue + tone) — the "intensity" dial. */
-function scaleChroma(argbHex: string, factor: number): string {
-  const argb = argbFromHex(argbHex.replace('#', ''));
-  const hct = Hct.fromInt(argb);
-  const chroma = Math.min(200, Math.max(0, hct.chroma * factor));
-  return hexFromArgb(TonalPalette.fromHueAndChroma(hct.hue, chroma).tone(hct.tone)).toUpperCase();
-}
-
 export class ColorsGenerator implements vscode.Disposable {
   private readonly emitter = new vscode.EventEmitter<void>();
   readonly onDidChangeState: vscode.Event<void> = this.emitter.event;
@@ -372,7 +356,7 @@ export class ColorsGenerator implements vscode.Disposable {
     const isDark = setting ?? this.currentThemeIsDark();
 
     const scheme = buildScheme({ sourceColorArgb: sourceArgb, isDark, contrastLevel, variant });
-    const colors = this.applyIntensity(schemeToHexMap(scheme), intensity);
+    const colors = applyIntensity(schemeToHexMap(scheme), intensity);
 
     const seedHex = hexFromArgb(sourceArgb).toUpperCase();
     const theme = generateTheme({ colors, isDark, syntaxStyle });
@@ -439,14 +423,6 @@ export class ColorsGenerator implements vscode.Disposable {
     await this.startWatcher(sourceKind, sourceKind === 'image' ? source : '');
   }
 
-  private applyIntensity(map: Record<string, string>, intensity: number): ThemeColors {
-    const colors = { ...map } as unknown as ThemeColors;
-    if (intensity >= 0.95 && intensity <= 1.05) return colors;
-    for (const role of ACCENT_ROLES) {
-      colors[role] = scaleChroma(colors[role], intensity);
-    }
-    return colors;
-  }
 
   // -------------------------------------------------------------------------
   // File-based application; settings only select the registered theme.

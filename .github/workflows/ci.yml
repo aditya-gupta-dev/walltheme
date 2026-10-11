@@ -39,5 +39,14 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: walltheme-vsix
-          path: '*.vsix'
+          path: 'packages/vscode/*.vsix'
           if-no-files-found: error
+  zed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-wasip2
+      - run: cargo fmt --manifest-path packages/zed/Cargo.toml --check
+      - run: cargo build --manifest-path packages/zed/Cargo.toml --target wasm32-wasip2 --release --locked

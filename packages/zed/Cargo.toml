@@ -1,0 +1,19 @@
+[package]
+name = "walltheme-zed"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "MIT"
+description = "WallTheme's Zed extension scaffold"
+repository = "https://github.com/aditya-gupta-dev/walltheme"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+zed_extension_api = "=0.7.0"
+
+[profile.release]
+opt-level = "s"
+lto = true
+strip = "debuginfo"

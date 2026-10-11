@@ -3,7 +3,24 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "walltheme",
+      "name": "walltheme-workspace",
+      "devDependencies": {
+        "@types/bun": "^1.1.10",
+        "@types/node": "^22.10.0",
+        "@types/pngjs": "^6.0.5",
+        "@types/vscode": "1.84.0",
+        "@vscode/vsce": "4.0.0",
+        "@walltheme/core": "workspace:*",
+        "esbuild": "0.28.2",
+        "pngjs": "^7.0.0",
+        "typescript": "^5.7.0",
+        "utif": "^3.1.0",
+        "yauzl": "3.4.0",
+      },
+    },
+    "packages/core": {
+      "name": "@walltheme/core",
+      "version": "0.1.0",
       "dependencies": {
         "@material/material-color-utilities": "0.4.0",
         "bmp-js": "^0.1.0",
@@ -12,15 +29,12 @@
         "pngjs": "^7.0.0",
         "utif": "^3.1.0",
       },
-      "devDependencies": {
-        "@types/bun": "^1.1.10",
-        "@types/node": "^22.10.0",
-        "@types/pngjs": "^6.0.5",
-        "@types/vscode": "1.84.0",
-        "@vscode/vsce": "4.0.0",
-        "esbuild": "0.28.2",
-        "typescript": "^5.7.0",
-        "yauzl": "3.4.0",
+    },
+    "packages/vscode": {
+      "name": "walltheme",
+      "version": "0.1.0",
+      "dependencies": {
+        "@walltheme/core": "workspace:*",
       },
     },
   },
@@ -172,6 +186,8 @@
     "@vscode/vsce-sign-win32-arm64": ["@vscode/vsce-sign-win32-arm64@2.0.6", "", { "os": "win32", "cpu": "arm64" }, "sha512-ivM/MiGIY0PJNZBoGtlRBM/xDpwbdlCWomUWuLmIxbi1Cxe/1nooYrEQoaHD8ojVRgzdQEUzMsRbyF5cJJgYOg=="],
 
     "@vscode/vsce-sign-win32-x64": ["@vscode/vsce-sign-win32-x64@2.0.6", "", { "os": "win32", "cpu": "x64" }, "sha512-mgth9Kvze+u8CruYMmhHw6Zgy3GRX2S+Ed5oSokDEK5vPEwGGKnmuXua9tmFhomeAnhgJnL4DCna3TiNuGrBTQ=="],
+
+    "@walltheme/core": ["@walltheme/core@workspace:packages/core"],
 
     "agent-base": ["agent-base@7.1.4", "", {}, "sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ=="],
 
@@ -362,6 +378,8 @@
     "utif": ["utif@3.1.0", "", { "dependencies": { "pako": "^1.0.5" } }, "sha512-WEo4D/xOvFW53K5f5QTaTbbiORcm2/pCL9P6qmJnup+17eYfKaEhDeX9PeQkuyEoIxlbGklDuGl8xwuXYMrrXQ=="],
 
     "version-range": ["version-range@4.15.0", "", {}, "sha512-Ck0EJbAGxHwprkzFO966t4/5QkRuzh+/I1RxhLgUKKwEn+Cd8NwM60mE3AqBZg5gYODoXW0EFsQvbZjRlvdqbg=="],
+
+    "walltheme": ["walltheme@workspace:packages/vscode"],
 
     "wsl-utils": ["wsl-utils@0.1.0", "", { "dependencies": { "is-wsl": "^3.1.0" } }, "sha512-h3Fbisa2nKGPxCpm89Hk33lBLsnaGBvctQopaBSOW/uIs6FTe1ATyAnKFJrzVs9vpGdsTe73WF3V4lIsk4Gacw=="],
 

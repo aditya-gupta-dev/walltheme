@@ -1,0 +1,218 @@
+{
+  "name": "walltheme",
+  "displayName": "WallTheme",
+  "description": "Generate Material You themes from images, including editor UI and code colors.",
+  "version": "0.1.0",
+  "publisher": "aditya-gupta-dev",
+  "license": "MIT",
+  "icon": "assets/icon.png",
+  "galleryBanner": {
+    "color": "#0b1224",
+    "theme": "dark"
+  },
+  "keywords": [
+    "theme",
+    "material you",
+    "matugen",
+    "dynamic theme",
+    "color scheme"
+  ],
+  "engines": {
+    "vscode": "^1.84.0"
+  },
+  "categories": [
+    "Themes",
+    "Other"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "walltheme.generateFromImage",
+        "title": "Generate Theme from Image\u2026",
+        "category": "WallTheme"
+      },
+      {
+        "command": "walltheme.openMenu",
+        "title": "Open Theme Menu\u2026",
+        "category": "WallTheme"
+      },
+      {
+        "command": "walltheme.reloadTheme",
+        "title": "WallTheme: Reload Theme\u2026",
+        "category": "WallTheme"
+      },
+      {
+        "command": "walltheme.resetTheme",
+        "title": "WallTheme: Reset Theme",
+        "category": "WallTheme"
+      },
+      {
+        "command": "walltheme.exportTheme",
+        "title": "WallTheme: Export Theme as JSON\u2026",
+        "category": "WallTheme"
+      },
+      {
+        "command": "walltheme.preview",
+        "title": "WallTheme: Preview Palette",
+        "category": "WallTheme"
+      },
+      {
+        "command": "walltheme.chooseSeed",
+        "title": "WallTheme: Choose Source Color\u2026",
+        "category": "WallTheme"
+      },
+      {
+        "command": "walltheme.openThemeFiles",
+        "title": "Open Generated Theme Files\u2026",
+        "category": "WallTheme"
+      }
+    ],
+    "configuration": {
+      "title": "WallTheme",
+      "properties": {
+        "walltheme.style": {
+          "type": "string",
+          "default": "tonalSpot",
+          "enum": [
+            "tonalSpot",
+            "vibrant",
+            "expressive",
+            "content",
+            "fidelity",
+            "rainbow",
+            "fruitSalad",
+            "contrast"
+          ],
+          "enumDescriptions": [
+            "Material's default: hue slightly shifted, medium chroma (what matugen uses)",
+            "Maximally colorful \u2014 high chroma everywhere",
+            "Expressive \u2014 hue may shift far from the source",
+            "Chroma pulled from the source image itself",
+            "Hue and chroma strictly from the source color",
+            "All hues of the rainbow at the seed's chroma",
+            "Seed hue offset by 40\u00b0 with rainbow-rotated accents",
+            "High-contrast variant of the tonal spot scheme"
+          ],
+          "description": "Dynamic color scheme variant (same set matugen exposes)."
+        },
+        "walltheme.contrastLevel": {
+          "type": "number",
+          "default": 0,
+          "minimum": -1,
+          "maximum": 1,
+          "description": "Contrast adjustment applied on top of the scheme (-1 \u2026 1)."
+        },
+        "walltheme.isDark": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": null,
+          "description": "Generate a dark theme (true), light theme (false), or follow VS Code's current theme kind (null)."
+        },
+        "walltheme.intensity": {
+          "type": "number",
+          "default": 1,
+          "minimum": 0.1,
+          "maximum": 1.5,
+          "description": "How strongly image colors saturate the editor (scales chroma)."
+        },
+        "walltheme.syntaxStyle": {
+          "type": "string",
+          "default": "material",
+          "enum": [
+            "material",
+            "rainbow",
+            "monochrome",
+            "vibrant"
+          ],
+          "enumDescriptions": [
+            "Material You inspired: tonal roles per token kind",
+            "Distinct hue per token kind for colorful coding",
+            "Grayscale syntax with only comments dimmed",
+            "Saturated, high-chroma tokens"
+          ],
+          "description": "Token color mapping strategy for the generated theme."
+        },
+        "walltheme.customImagePath": {
+          "type": "string",
+          "default": "",
+          "description": "Image used by 'Reload Theme\u2026' between sessions. Managed automatically."
+        },
+        "walltheme.autoReload": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically regenerate when the chosen image changes."
+        },
+        "walltheme.watchIntervalMs": {
+          "type": "number",
+          "default": 5000,
+          "minimum": 1000,
+          "description": "Polling interval in milliseconds for chosen-image auto-reload."
+        },
+        "walltheme.showStatusBarItem": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the WallTheme status bar item."
+        }
+      }
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "walltheme.generateFromImage",
+          "group": "walltheme"
+        },
+        {
+          "command": "walltheme.reloadTheme",
+          "group": "walltheme"
+        }
+      ]
+    },
+    "themes": [
+      {
+        "label": "WallTheme Dark",
+        "uiTheme": "vs-dark",
+        "path": "./dist/themes/walltheme-dark.json"
+      },
+      {
+        "label": "WallTheme Light",
+        "uiTheme": "vs",
+        "path": "./dist/themes/walltheme-light.json"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "node scripts/esbuild.mjs",
+    "watch": "node scripts/esbuild.mjs --watch",
+    "vscode:prepublish": "bun run --cwd ../.. check && node scripts/esbuild.mjs --production --reset-themes",
+    "package": "vsce package --no-dependencies && node scripts/verify-package.mjs",
+    "publish": "node scripts/publish.mjs"
+  },
+  "dependencies": {
+    "@walltheme/core": "workspace:*"
+  },
+  "extensionKind": [
+    "ui",
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aditya-gupta-dev/walltheme.git",
+    "directory": "packages/vscode"
+  },
+  "homepage": "https://github.com/aditya-gupta-dev/walltheme#readme",
+  "bugs": {
+    "url": "https://github.com/aditya-gupta-dev/walltheme/issues"
+  },
+  "pricing": "Free"
+}
